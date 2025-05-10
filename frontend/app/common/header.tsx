@@ -22,7 +22,7 @@ const Header = () => {
   const navLinks = [
     { href: "/#about", label: "About" },
     { href: "/#symptoms", label: "Symptoms" },
-    { href: "/#predict", label: "Predict" },
+    { href: "/predict", label: "Predict" },
     { href: "/#education", label: "Education" },
     { href: "/about", label: "Our Team" },
     { href: "/resources", label: "Resources" },
@@ -45,9 +45,9 @@ const Header = () => {
   return (
     <header className="py-4 px-6 sm:px-10 flex justify-between items-center border-b sticky top-0 bg-background z-50">
       <div className="flex items-center space-x-2">
-        <Activity className="h-8 w-8 text-hepa-teal" />
-        <h1 className="text-2xl font-bold text-hepa-navy">
-          <span className="text-hepa-teal">Hepa</span>Predict
+        <Activity className="h-8 w-8 text-primary" />
+        <h1 className="text-2xl font-bold text-foreground">
+          <span className="text-primary">Hepa</span>Predict
         </h1>
       </div>
 
@@ -59,7 +59,7 @@ const Header = () => {
               <a
                 key={link.href}
                 href={link.href}
-                className="text-gray-600 hover:text-hepa-teal transition-colors duration-200"
+                className="text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 {link.label}
               </a>
@@ -67,14 +67,17 @@ const Header = () => {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-gray-600 hover:text-hepa-teal transition-colors duration-200"
+                className="text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 {link.label}
               </Link>
             ),
           )}
         </nav>
-        <Button variant="outline" className="border-hepa-teal text-hepa-teal hover:bg-hepa-teal hover:text-white">
+        <Button
+          variant="outline"
+          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+        >
           <Users className="h-4 w-4 mr-2" />
           Register
         </Button>
@@ -86,13 +89,13 @@ const Header = () => {
           <Button
             variant="outline"
             size="icon"
-            className="rounded-full border-hepa-teal text-hepa-teal hover:bg-hepa-teal hover:text-white mr-2"
+            className="rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground mr-2"
           >
             <Bell className="h-4 w-4" />
           </Button>
           <Drawer open={open} onOpenChange={setOpen}>
             <DrawerTrigger asChild>
-              <Button variant="ghost" className="text-gray-600" aria-label="Menu">
+              <Button variant="ghost" className="text-foreground" aria-label="Menu">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-6 w-6"
@@ -106,8 +109,8 @@ const Header = () => {
             </DrawerTrigger>
             <DrawerContent className="bg-background">
               <DrawerHeader>
-                <DrawerTitle className="text-center text-hepa-navy">
-                  <span className="text-hepa-teal">Hepa</span>Predict Menu
+                <DrawerTitle className="text-center text-foreground">
+                  <span className="text-primary">Hepa</span>Predict Menu
                 </DrawerTitle>
               </DrawerHeader>
               <div className="flex flex-col items-center gap-6 py-8">
@@ -115,13 +118,13 @@ const Header = () => {
                   <button
                     key={link.href}
                     onClick={() => handleNavClick(link.href)}
-                    className="text-lg font-semibold text-gray-700 hover:text-hepa-teal transition-colors"
+                    className="text-lg font-semibold text-muted-foreground hover:text-primary transition-colors"
                   >
                     {link.label}
                   </button>
                 ))}
                 <Button
-                  className="mt-4 border-hepa-teal text-hepa-teal hover:bg-hepa-teal hover:text-white"
+                  className="mt-4 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                   variant="outline"
                 >
                   <Users className="h-4 w-4 mr-2" />

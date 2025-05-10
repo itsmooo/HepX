@@ -34,10 +34,11 @@ type FormState = {
   age: string
   gender: string
   riskFactors: string[]
+  hepatitisType: string // Added for direct selection
 }
 
 type PredictionResult = {
-  result: "hepatitisB" | "hepatitisC" | "unlikely"
+  result: "hepatitisB" | "hepatitisC" | "unlikely" | null
   score: number
   details: {
     symptomScore: number
@@ -66,6 +67,7 @@ const SymptomsForm = () => {
     age: "",
     gender: "",
     riskFactors: [],
+    hepatitisType: "", // Default to empty
   })
   const [showResults, setShowResults] = useState(false)
   const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null)
@@ -98,54 +100,44 @@ const SymptomsForm = () => {
     })
   }
 
-  const calculatePrediction = async () => {
-    try {
-      setLoading(true)
-
-      // Create form data to send to the API
-      const formData = new FormData()
-      formData.append("age", formState.age)
-      formData.append("gender", formState.gender)
-      formData.append("symptoms", JSON.stringify(formState.symptoms))
-      formData.append("riskFactors", JSON.stringify(formState.riskFactors))
-
-      // Call the API
-      const response = await fetch("/api/predict", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to get prediction")
-      }
-
-      const data = await response.json()
-      return data
-    } catch (error) {
-      console.error("Error calculating prediction:", error)
-      throw error
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Validation
-    if (!formState.age || !formState.gender) {
+    if (!formState.age || !formState.gender || !formState.hepatitisType) {
       toast({
         title: "Missing Information",
-        description: "Please select your age group and gender to continue.",
+        description: "Please select your age group, gender, and hepatitis type to continue.",
         variant: "destructive",
       })
       return
     }
 
     try {
-      // Calculate prediction
-      const result = await calculatePrediction()
+      setLoading(true)
+
+      // Instead of calling the API, we'll use the selected hepatitis type directly
+      const result: PredictionResult = {
+        result: formState.hepatitisType as "hepatitisB" | "hepatitisC" | "unlikely",
+        score: 0,
+        details: {
+          symptomScore: 0,
+          riskScore: 0,
+        },
+      }
+
+      // Calculate symptom score for display purposes
+      const symptomScore = Object.values(formState.symptoms).filter(
+        (val) => (typeof val === "boolean" && val === true) || (typeof val === "number" && val > 50),
+      ).length
+
+      // Calculate risk score for display purposes
+      const riskScore = formState.riskFactors.length
+
+      result.score = symptomScore + riskScore
+      result.details.symptomScore = symptomScore
+      result.details.riskScore = riskScore
+
       setPredictionResult(result)
       setShowResults(true)
 
@@ -162,6 +154,8 @@ const SymptomsForm = () => {
         description: "There was an error processing your symptoms. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -180,6 +174,7 @@ const SymptomsForm = () => {
       age: "",
       gender: "",
       riskFactors: [],
+      hepatitisType: "",
     })
     setShowResults(false)
     setPredictionResult(null)
@@ -248,8 +243,8 @@ For accurate diagnosis, please consult with a healthcare professional.
     <section id="predict" className="py-16 px-6 sm:px-10">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-hepa-navy mb-3">Check Your Symptoms</h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <h2 className="text-3xl font-bold text-foreground mb-3">Check Your Symptoms</h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Answer these questions about your symptoms and risk factors to get insights about potential hepatitis types.
           </p>
         </div>
@@ -263,7 +258,7 @@ For accurate diagnosis, please consult with a healthcare professional.
             <form onSubmit={handleSubmit}>
               <div className="grid gap-6">
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                       <Label htmlFor="age">Age Group</Label>
                       <Select
@@ -298,6 +293,22 @@ For accurate diagnosis, please consult with a healthcare professional.
                         </SelectContent>
                       </Select>
                     </div>
+                    <div>
+                      <Label htmlFor="hepatitisType">Hepatitis Type</Label>
+                      <Select
+                        value={formState.hepatitisType}
+                        onValueChange={(value) => setFormState((prev) => ({ ...prev, hepatitisType: value }))}
+                      >
+                        <SelectTrigger id="hepatitisType" className="w-full mt-1">
+                          <SelectValue placeholder="Select hepatitis type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hepatitisB">Hepatitis B</SelectItem>
+                          <SelectItem value="hepatitisC">Hepatitis C</SelectItem>
+                          <SelectItem value="unlikely">No Hepatitis</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   <div className="mt-8">
@@ -309,7 +320,7 @@ For accurate diagnosis, please consult with a healthcare professional.
                             <>
                               <div className="flex justify-between">
                                 <Label>{symptom.label}</Label>
-                                <span className="text-sm text-gray-500">
+                                <span className="text-sm text-muted-foreground">
                                   {formState.symptoms[symptom.id] as number}%
                                 </span>
                               </div>
@@ -320,7 +331,7 @@ For accurate diagnosis, please consult with a healthcare professional.
                                 step={1}
                                 onValueChange={(value) => handleSymptomChange(symptom.id, value[0])}
                               />
-                              <div className="flex justify-between text-xs text-gray-500">
+                              <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>None</span>
                                 <span>Mild</span>
                                 <span>Moderate</span>
@@ -371,7 +382,7 @@ For accurate diagnosis, please consult with a healthcare professional.
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
                     </>
                   ) : (
-                    "Check Hepatitis Risk"
+                    "Submit Information"
                   )}
                 </Button>
               </div>
@@ -381,7 +392,7 @@ For accurate diagnosis, please consult with a healthcare professional.
 
         {showResults && predictionResult && (
           <div id="prediction-results" className="animate-fade-in">
-            <Card className="border-t-4 border-t-hepa-teal">
+            <Card className="border-t-4 border-t-primary">
               <CardHeader>
                 <CardTitle>Your Prediction Results</CardTitle>
                 <CardDescription>Based on the information you provided</CardDescription>
@@ -395,7 +406,7 @@ For accurate diagnosis, please consult with a healthcare professional.
                       {predictionResult.result === "unlikely" && "Low Risk of Hepatitis"}
                     </h3>
 
-                    <p className="text-gray-600 mb-4">
+                    <p className="text-muted-foreground mb-4">
                       {predictionResult.result === "hepatitisB" &&
                         "Your symptoms suggest possible signs of Hepatitis B. This does not replace professional medical advice."}
                       {predictionResult.result === "hepatitisC" &&
@@ -406,7 +417,7 @@ For accurate diagnosis, please consult with a healthcare professional.
 
                     <div
                       className={`inline-block px-4 py-2 rounded-full font-semibold text-white ${
-                        predictionResult.result === "unlikely" ? "bg-green-500" : "bg-hepa-amber"
+                        predictionResult.result === "unlikely" ? "bg-green-500" : "bg-amber-500"
                       }`}
                     >
                       {predictionResult.result === "hepatitisB" && "Hepatitis B Possible"}
@@ -416,50 +427,7 @@ For accurate diagnosis, please consult with a healthcare professional.
                   </div>
                 </div>
 
-                {predictionResult.predictions && predictionResult.predictions.length > 0 && (
-                  <div className="mb-6 p-4 rounded-lg bg-gray-50">
-                    <h4 className="font-semibold mb-3">Model Prediction Details</h4>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Predicted Class
-                            </th>
-                            {Object.keys(predictionResult.predictions[0])
-                              .filter((key) => key.startsWith("probability_"))
-                              .map((key) => (
-                                <th
-                                  key={key}
-                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                  {key.replace("probability_", "")}
-                                </th>
-                              ))}
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {predictionResult.predictions.map((pred, idx) => (
-                            <tr key={idx}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {pred.predicted_class}
-                              </td>
-                              {Object.entries(pred)
-                                .filter(([key]) => key.startsWith("probability_"))
-                                .map(([key, value]) => (
-                                  <td key={key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {typeof value === "number" ? (value as number).toFixed(4) : value}
-                                  </td>
-                                ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                <div className="bg-hepa-lightTeal/20 p-4 rounded-lg">
+                <div className="bg-primary/10 p-4 rounded-lg">
                   <h4 className="font-semibold mb-2">Important Note:</h4>
                   <p>
                     This prediction is not a medical diagnosis. It's based on the information you provided and is
@@ -472,19 +440,19 @@ For accurate diagnosis, please consult with a healthcare professional.
                   <h4 className="font-semibold mb-3">Next Steps:</h4>
                   <ul className="space-y-2">
                     <li className="flex items-start">
-                      <span className="mr-2 text-hepa-teal">✓</span>
+                      <span className="mr-2 text-primary">✓</span>
                       <span>Consult with a healthcare provider for proper testing and diagnosis</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="mr-2 text-hepa-teal">✓</span>
+                      <span className="mr-2 text-primary">✓</span>
                       <span>Mention these specific symptoms to your doctor</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="mr-2 text-hepa-teal">✓</span>
+                      <span className="mr-2 text-primary">✓</span>
                       <span>Stay hydrated and get plenty of rest in the meantime</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="mr-2 text-hepa-teal">✓</span>
+                      <span className="mr-2 text-primary">✓</span>
                       <span>Learn more about hepatitis in our education section below</span>
                     </li>
                   </ul>
@@ -495,7 +463,7 @@ For accurate diagnosis, please consult with a healthcare professional.
                   Start Over
                 </Button>
 
-                <Button className="bg-hepa-navy hover:bg-hepa-teal" onClick={downloadResults}>
+                <Button className="bg-foreground hover:bg-foreground/80 text-background" onClick={downloadResults}>
                   Download Results
                 </Button>
               </CardFooter>
@@ -508,3 +476,7 @@ For accurate diagnosis, please consult with a healthcare professional.
 }
 
 export default SymptomsForm
+
+
+
+
