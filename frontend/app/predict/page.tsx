@@ -1,620 +1,864 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Loader2, Send, RefreshCw, Download } from "lucide-react"
-import { useToast } from "../hooks/use-toast"
-
-type Message = {
-  id: string
-  content: string
-  role: "user" | "assistant" | "system"
-  timestamp: Date
-}
-
-type ChatbotState =
-  | "greeting"
-  | "asking_age"
-  | "asking_gender"
-  | "asking_symptoms"
-  | "asking_jaundice"
-  | "asking_dark_urine"
-  | "asking_abdominal_pain"
-  | "asking_fatigue"
-  | "asking_fever"
-  | "asking_risk_factors"
-  | "asking_hepatitis_type" // Added state for asking hepatitis type
-  | "confirming"
-  | "predicting"
-  | "result"
-  | "followup"
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+import { Download, Loader2 } from "lucide-react";
+import { useToast } from "../hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type UserData = {
-  age?: string
-  gender?: string
+  age: string;
+  gender: string;
+  hepatitisType: string;
   symptoms: {
-    jaundice?: boolean
-    darkUrine?: boolean
-    abdominalPain?: number
-    fatigue?: number
-    fever?: boolean
-    nausea?: boolean
-    jointPain?: boolean
-    appetite?: boolean
-  }
-  riskFactors: string[]
-  hepatitisType?: string // Added for direct selection
-}
+    jaundice: boolean;
+    darkUrine: boolean;
+    abdominalPain: number;
+    fatigue: number;
+    fever: boolean;
+    nausea: boolean;
+    jointPain: boolean;
+    appetite: boolean;
+  };
+  riskFactors: string[];
+};
 
-export default function PredictionChatbot() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [chatState, setChatState] = useState<ChatbotState>("greeting")
+export default function PredictionSelector() {
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("basic");
+  const [loading, setLoading] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const [userData, setUserData] = useState<UserData>({
-    symptoms: {},
+    age: "",
+    gender: "",
+    hepatitisType: "",
+    symptoms: {
+      jaundice: false,
+      darkUrine: false,
+      abdominalPain: 0,
+      fatigue: 0,
+      fever: false,
+      nausea: false,
+      jointPain: false,
+      appetite: false,
+    },
     riskFactors: [],
-  })
-  const [prediction, setPrediction] = useState<string | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { toast } = useToast()
+  });
 
-  // Initialize chat with greeting
-  useEffect(() => {
-    const initialMessage: Message = {
-      id: "1",
-      content:
-        "Hello! I'm your HepaPredict assistant. I can help assess your hepatitis type based on your symptoms. Would you like to start?",
-      role: "assistant",
-      timestamp: new Date(),
-    }
-    setMessages([initialMessage])
-  }, [])
-
-  // Scroll to bottom of chat
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
-
-  const addMessage = (content: string, role: "user" | "assistant" | "system") => {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      content,
-      role,
-      timestamp: new Date(),
-    }
-    setMessages((prev) => [...prev, newMessage])
-  }
-
-  const handleSendMessage = async () => {
-    if (!input.trim()) return
-
-    // Add user message
-    addMessage(input, "user")
-
-    // Clear input field
-    setInput("")
-
-    // Process user input based on current state
-    await processUserInput(input)
-  }
-
-  const processUserInput = async (userInput: string) => {
-    setLoading(true)
-
-    // Delay to simulate thinking
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    try {
-      switch (chatState) {
-        case "greeting":
-          if (isAffirmative(userInput)) {
-            addMessage(
-              "Great! Let's start by getting some basic information. What is your age group? (Under 18, 18-30, 31-45, 46-60, or Over 60)",
-              "assistant",
-            )
-            setChatState("asking_age")
-          } else {
-            addMessage(
-              "No problem. If you change your mind, just let me know and we can start the assessment.",
-              "assistant",
-            )
-          }
-          break
-
-        case "asking_age":
-          const age = parseAgeGroup(userInput)
-          if (age) {
-            setUserData((prev) => ({ ...prev, age }))
-            addMessage(`Thanks! And what is your gender? (Male, Female, or Other)`, "assistant")
-            setChatState("asking_gender")
-          } else {
-            addMessage(
-              "I didn't catch that. Please specify your age group: Under 18, 18-30, 31-45, 46-60, or Over 60.",
-              "assistant",
-            )
-          }
-          break
-
-        case "asking_gender":
-          const gender = parseGender(userInput)
-          if (gender) {
-            setUserData((prev) => ({ ...prev, gender }))
-            addMessage(
-              "Now, let's talk about your symptoms. Do you have yellowing of the skin or eyes (jaundice)? (Yes/No)",
-              "assistant",
-            )
-            setChatState("asking_jaundice")
-          } else {
-            addMessage("I didn't catch that. Please specify your gender: Male, Female, or Other.", "assistant")
-          }
-          break
-
-        case "asking_jaundice":
-          if (isAffirmative(userInput)) {
-            setUserData((prev) => ({
-              ...prev,
-              symptoms: { ...prev.symptoms, jaundice: true },
-            }))
-            addMessage("I see. Do you have dark urine? (Yes/No)", "assistant")
-          } else if (isNegative(userInput)) {
-            setUserData((prev) => ({
-              ...prev,
-              symptoms: { ...prev.symptoms, jaundice: false },
-            }))
-            addMessage("Okay. Do you have dark urine? (Yes/No)", "assistant")
-          } else {
-            addMessage(
-              "Please answer with Yes or No. Do you have yellowing of the skin or eyes (jaundice)?",
-              "assistant",
-            )
-            break
-          }
-          setChatState("asking_dark_urine")
-          break
-
-        case "asking_dark_urine":
-          if (isAffirmative(userInput) || isNegative(userInput)) {
-            setUserData((prev) => ({
-              ...prev,
-              symptoms: { ...prev.symptoms, darkUrine: isAffirmative(userInput) },
-            }))
-            addMessage("On a scale of 0-10, how would you rate your abdominal pain, if any?", "assistant")
-            setChatState("asking_abdominal_pain")
-          } else {
-            addMessage("Please answer with Yes or No. Do you have dark urine?", "assistant")
-          }
-          break
-
-        case "asking_abdominal_pain":
-          const painLevel = Number.parseInt(userInput.match(/\d+/)?.[0] || "")
-          if (!isNaN(painLevel) && painLevel >= 0 && painLevel <= 10) {
-            setUserData((prev) => ({
-              ...prev,
-              symptoms: { ...prev.symptoms, abdominalPain: painLevel * 10 },
-            }))
-            addMessage("On a scale of 0-10, how would you rate your fatigue or tiredness?", "assistant")
-            setChatState("asking_fatigue")
-          } else {
-            addMessage("Please provide a number between 0 and 10 for your abdominal pain level.", "assistant")
-          }
-          break
-
-        case "asking_fatigue":
-          const fatigueLevel = Number.parseInt(userInput.match(/\d+/)?.[0] || "")
-          if (!isNaN(fatigueLevel) && fatigueLevel >= 0 && fatigueLevel <= 10) {
-            setUserData((prev) => ({
-              ...prev,
-              symptoms: { ...prev.symptoms, fatigue: fatigueLevel * 10 },
-            }))
-            addMessage("Do you have a fever? (Yes/No)", "assistant")
-            setChatState("asking_fever")
-          } else {
-            addMessage("Please provide a number between 0 and 10 for your fatigue level.", "assistant")
-          }
-          break
-
-        case "asking_fever":
-          if (isAffirmative(userInput) || isNegative(userInput)) {
-            setUserData((prev) => ({
-              ...prev,
-              symptoms: { ...prev.symptoms, fever: isAffirmative(userInput) },
-            }))
-            addMessage(
-              "Let's talk about risk factors. Have you traveled to areas with high hepatitis rates, had blood transfusions, or been exposed to contaminated needles? (Yes/No)",
-              "assistant",
-            )
-            setChatState("asking_risk_factors")
-          } else {
-            addMessage("Please answer with Yes or No. Do you have a fever?", "assistant")
-          }
-          break
-
-        case "asking_risk_factors":
-          if (isAffirmative(userInput)) {
-            setUserData((prev) => ({
-              ...prev,
-              riskFactors: ["exposureRisk"],
-            }))
-          }
-
-          // Now ask for hepatitis type directly
-          addMessage(
-            "Based on your knowledge or previous diagnosis, which type of hepatitis do you think you might have? (Hepatitis B, Hepatitis C, or Not Sure/None)",
-            "assistant",
-          )
-          setChatState("asking_hepatitis_type")
-          break
-
-        case "asking_hepatitis_type":
-          const hepatitisType = parseHepatitisType(userInput)
-          if (hepatitisType) {
-            setUserData((prev) => ({ ...prev, hepatitisType }))
-
-            // Summarize the information
-            const summary = generateSummary(userData)
-            addMessage(
-              `Thank you for providing this information. Here's what I understand:\n\n${summary}\n\nHepatitis Type: ${formatHepatitisType(hepatitisType)}\n\nIs this correct? (Yes/No)`,
-              "assistant",
-            )
-            setChatState("confirming")
-          } else {
-            addMessage(
-              "I didn't catch that. Please specify the hepatitis type: Hepatitis B, Hepatitis C, or Not Sure/None.",
-              "assistant",
-            )
-          }
-          break
-
-        case "confirming":
-          if (isAffirmative(userInput)) {
-            addMessage("Great! I'll process this information. One moment please...", "assistant")
-            setChatState("predicting")
-            await processResult()
-          } else {
-            addMessage("I understand. Let's start over to make sure we get accurate information.", "assistant")
-            resetChat()
-          }
-          break
-
-        case "followup":
-          if (isAffirmative(userInput)) {
-            addMessage(
-              "I recommend consulting with a healthcare professional for proper testing and diagnosis. They can provide personalized advice based on your specific situation.",
-              "assistant",
-            )
-            addMessage("Is there anything else you'd like to know about hepatitis?", "assistant")
-          } else {
-            addMessage(
-              "Thank you for using HepaPredict. If you have any more questions in the future, feel free to come back!",
-              "assistant",
-            )
-          }
-          break
-
-        default:
-          addMessage("I'm not sure how to respond to that. Let's continue with the assessment.", "assistant")
-      }
-    } catch (error) {
-      console.error("Error processing message:", error)
-      addMessage("I'm having trouble processing your response. Let's try again.", "assistant")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const processResult = async () => {
-    try {
-      setLoading(true)
-
-      // Use the directly selected hepatitis type
-      const selectedType = userData.hepatitisType || "unlikely"
-      setPrediction(selectedType)
-
-      // Display the result based on the selected type
-      let resultMessage = ""
-      if (selectedType === "hepatitisB") {
-        resultMessage =
-          "Based on your selection, we'll provide information about Hepatitis B. Here are some key points about Hepatitis B:"
-        resultMessage += "\n\n- Hepatitis B is caused by the Hepatitis B virus (HBV)"
-        resultMessage += "\n- It's transmitted through contact with infected blood, semen, and other body fluids"
-        resultMessage += "\n- It can cause both acute and chronic infection"
-        resultMessage += "\n- Symptoms may include fatigue, jaundice, abdominal pain, and dark urine"
-        resultMessage += "\n- A vaccine is available to prevent Hepatitis B"
-
-        if (userData.symptoms.jaundice)
-          resultMessage += "\n\nYou mentioned having jaundice, which is a common symptom of Hepatitis B."
-        if (userData.symptoms.darkUrine)
-          resultMessage += "\n\nYou mentioned having dark urine, which is often seen in Hepatitis B cases."
-
-        resultMessage += "\n\nIt's important to consult with a healthcare provider for proper testing and evaluation."
-      } else if (selectedType === "hepatitisC") {
-        resultMessage =
-          "Based on your selection, we'll provide information about Hepatitis C. Here are some key points about Hepatitis C:"
-        resultMessage += "\n\n- Hepatitis C is caused by the Hepatitis C virus (HCV)"
-        resultMessage += "\n- It's primarily transmitted through contact with infected blood"
-        resultMessage += "\n- It often becomes chronic and can lead to serious liver problems if untreated"
-        resultMessage += "\n- Many people with Hepatitis C don't have symptoms until liver damage occurs"
-        resultMessage += "\n- Effective treatments are available that can cure Hepatitis C in most cases"
-
-        if ((userData.symptoms.fatigue || 0) > 70)
-          resultMessage += "\n\nYou mentioned experiencing significant fatigue, which is common in Hepatitis C."
-
-        resultMessage += "\n\nIt's important to consult with a healthcare provider for proper testing and evaluation."
-      } else {
-        resultMessage =
-          "Based on your selection, you don't believe you have hepatitis or you're not sure. This is good to know, but it's still important to be aware of hepatitis symptoms and risk factors."
-        resultMessage += "\n\nIf you're experiencing persistent symptoms like:"
-        resultMessage += "\n- Fatigue"
-        resultMessage += "\n- Jaundice (yellowing of skin/eyes)"
-        resultMessage += "\n- Abdominal pain"
-        resultMessage += "\n- Dark urine"
-        resultMessage +=
-          "\n\nIt's always a good idea to consult with a healthcare provider, even if you don't think it's hepatitis."
-      }
-
-      addMessage(resultMessage, "assistant")
-      addMessage("Would you like me to provide more information about next steps?", "assistant")
-      setChatState("followup")
-    } catch (error) {
-      console.error("Error processing result:", error)
-      addMessage(
-        "I'm sorry, I encountered an error while processing your information. Please try again later.",
-        "assistant",
-      )
-      setChatState("greeting")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const resetChat = () => {
-    setUserData({
-      symptoms: {},
-      riskFactors: [],
-    })
-    setPrediction(null)
-    setChatState("greeting")
-    setMessages([
-      {
-        id: "reset",
-        content:
-          "Hello! I'm your HepaPredict assistant. I can help assess your hepatitis type based on your symptoms. Would you like to start?",
-        role: "assistant",
-        timestamp: new Date(),
+  const handleSymptomChange = (id: string, value: boolean | number) => {
+    setUserData((prev) => ({
+      ...prev,
+      symptoms: {
+        ...prev.symptoms,
+        [id]: value,
       },
-    ])
-  }
+    }));
+  };
+
+  const handleRiskFactorToggle = (id: string) => {
+    setUserData((prev) => {
+      const riskFactors = [...prev.riskFactors];
+      if (riskFactors.includes(id)) {
+        return {
+          ...prev,
+          riskFactors: riskFactors.filter((factorId) => factorId !== id),
+        };
+      } else {
+        return {
+          ...prev,
+          riskFactors: [...riskFactors, id],
+        };
+      }
+    });
+  };
+
+  const handleSubmit = async () => {
+    // Validation
+    if (!userData.age || !userData.gender || !userData.hepatitisType) {
+      toast({
+        title: "Missing Information",
+        description: "Please complete all required fields before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Create form data to send to the API
+      const formData = new FormData();
+      formData.append("age", userData.age);
+      formData.append("gender", userData.gender);
+      formData.append("hepatitisType", userData.hepatitisType);
+      formData.append("symptoms", JSON.stringify(userData.symptoms));
+      formData.append("riskFactors", JSON.stringify(userData.riskFactors));
+
+      // Call the API
+      const response = await fetch("/api/predict", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to process selection");
+      }
+
+      // Show results
+      setShowResults(true);
+
+      // Scroll to results
+      setTimeout(() => {
+        const resultsElement = document.getElementById("prediction-results");
+        if (resultsElement) {
+          resultsElement.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          "There was an error processing your information. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setUserData({
+      age: "",
+      gender: "",
+      hepatitisType: "",
+      symptoms: {
+        jaundice: false,
+        darkUrine: false,
+        abdominalPain: 0,
+        fatigue: 0,
+        fever: false,
+        nausea: false,
+        jointPain: false,
+        appetite: false,
+      },
+      riskFactors: [],
+    });
+    setShowResults(false);
+    setActiveTab("basic");
+  };
 
   const downloadResults = () => {
-    if (!prediction) return
-
     const resultText = `
-HepaPredict Chatbot Results
----------------------------
+HepaPredict Results
+-------------------
 Date: ${new Date().toLocaleString()}
 
 Patient Information:
-- Age Group: ${userData.age || "Not specified"}
-- Gender: ${userData.gender || "Not specified"}
+- Age Group: ${formatAgeGroup(userData.age)}
+- Gender: ${formatGender(userData.gender)}
 
-Symptoms Reported:
-- Jaundice (yellowing of skin/eyes): ${userData.symptoms.jaundice ? "Yes" : "No"}
+Selected Hepatitis Type: ${formatHepatitisType(userData.hepatitisType)}
+
+Reported Symptoms:
+- Jaundice (yellowing of skin/eyes): ${
+      userData.symptoms.jaundice ? "Yes" : "No"
+    }
 - Dark urine: ${userData.symptoms.darkUrine ? "Yes" : "No"}
-- Abdominal pain level: ${userData.symptoms.abdominalPain ? (userData.symptoms.abdominalPain / 10) + "/10" : "Not reported"}
-- Fatigue level: ${userData.symptoms.fatigue ? (userData.symptoms.fatigue / 10) + "/10" : "Not reported"}
+- Abdominal pain level: ${userData.symptoms.abdominalPain / 10}/10
+- Fatigue level: ${userData.symptoms.fatigue / 10}/10
 - Fever: ${userData.symptoms.fever ? "Yes" : "No"}
+- Nausea: ${userData.symptoms.nausea ? "Yes" : "No"}
+- Joint pain: ${userData.symptoms.jointPain ? "Yes" : "No"}
+- Loss of appetite: ${userData.symptoms.appetite ? "Yes" : "No"}
 
 Risk Factors:
-${userData.riskFactors.length > 0 ? "- Exposure to risk factors reported" : "- No risk factors reported"}
-
-Selected Hepatitis Type:
-${formatHepatitisType(prediction)}
+${
+  userData.riskFactors.length > 0
+    ? userData.riskFactors
+        .map((factor) => `- ${formatRiskFactor(factor)}`)
+        .join("\n")
+    : "- None reported"
+}
 
 Important Note:
-This assessment is based on the information you provided. For accurate diagnosis, please consult with a healthcare professional.
-    `
+This is based on your selection and is not a medical diagnosis. For accurate diagnosis, please consult with a healthcare professional.
+    `;
 
-    const blob = new Blob([resultText], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "HepaPredict_Chatbot_Results.txt"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    const blob = new Blob([resultText], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "HepaPredict_Results.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 
     toast({
       title: "Results Downloaded",
-      description: "Your assessment results have been downloaded as a text file.",
-    })
-  }
+      description:
+        "Your assessment results have been downloaded as a text file.",
+    });
+  };
+
+  const nextTab = () => {
+    if (activeTab === "basic") {
+      if (!userData.age || !userData.gender) {
+        toast({
+          title: "Missing Information",
+          description:
+            "Please select your age group and gender before continuing.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setActiveTab("symptoms");
+    } else if (activeTab === "symptoms") {
+      setActiveTab("risk");
+    } else if (activeTab === "risk") {
+      setActiveTab("selection");
+    }
+  };
+
+  const prevTab = () => {
+    if (activeTab === "symptoms") {
+      setActiveTab("basic");
+    } else if (activeTab === "risk") {
+      setActiveTab("symptoms");
+    } else if (activeTab === "selection") {
+      setActiveTab("risk");
+    }
+  };
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <Avatar className="h-8 w-8 mr-2">
-            <AvatarImage src="/placeholder.svg?height=40&width=40" />
-            <AvatarFallback className="bg-primary text-primary-foreground">HP</AvatarFallback>
-          </Avatar>
-          HepaPredict Chatbot
-        </CardTitle>
-        <CardDescription>Chat with our AI assistant to learn about hepatitis based on your symptoms</CardDescription>
+        <CardTitle>Hepatitis Type Selector</CardTitle>
+        <CardDescription>
+          Answer a few questions to learn about different hepatitis types
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[400px] overflow-y-auto border rounded-md p-4 mb-4">
-          {messages.map((message) => (
-            <div key={message.id} className={`mb-4 flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                }`}
-              >
-                {message.content.split("\n").map((line, i) => (
-                  <p key={i} className={i > 0 ? "mt-2" : ""}>
-                    {line}
+        {!showResults ? (
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="grid grid-cols-4 mb-8">
+              <TabsTrigger value="basic">Basic Info</TabsTrigger>
+              <TabsTrigger value="symptoms">Symptoms</TabsTrigger>
+              <TabsTrigger value="risk">Risk Factors</TabsTrigger>
+              <TabsTrigger value="selection">Selection</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="basic">
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="age-group">Age Group</Label>
+                  <Select
+                    value={userData.age}
+                    onValueChange={(value) =>
+                      setUserData((prev) => ({ ...prev, age: value }))
+                    }
+                  >
+                    <SelectTrigger id="age-group" className="w-full mt-2">
+                      <SelectValue placeholder="Select your age group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="under18">Under 18</SelectItem>
+                      <SelectItem value="18-30">18-30</SelectItem>
+                      <SelectItem value="31-45">31-45</SelectItem>
+                      <SelectItem value="46-60">46-60</SelectItem>
+                      <SelectItem value="over60">Over 60</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="gender">Gender</Label>
+                  <RadioGroup
+                    value={userData.gender}
+                    onValueChange={(value: any) =>
+                      setUserData((prev) => ({ ...prev, gender: value }))
+                    }
+                    className="flex space-x-4 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="male" id="male" />
+                      <Label htmlFor="male">Male</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="female" id="female" />
+                      <Label htmlFor="female">Female</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="other" id="other" />
+                      <Label htmlFor="other">Other</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="symptoms">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="jaundice"
+                        checked={userData.symptoms.jaundice}
+                        onCheckedChange={(checked: boolean) =>
+                          handleSymptomChange("jaundice", checked === true)
+                        }
+                      />
+                      <Label htmlFor="jaundice">
+                        Yellowing of skin/eyes (Jaundice)
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="darkUrine"
+                        checked={userData.symptoms.darkUrine}
+                        onCheckedChange={(checked: boolean) =>
+                          handleSymptomChange("darkUrine", checked === true)
+                        }
+                      />
+                      <Label htmlFor="darkUrine">Dark Urine</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="fever"
+                        checked={userData.symptoms.fever}
+                        onCheckedChange={(checked: boolean) =>
+                          handleSymptomChange("fever", checked === true)
+                        }
+                      />
+                      <Label htmlFor="fever">Fever</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="jointPain"
+                        checked={userData.symptoms.jointPain}
+                        onCheckedChange={(checked: boolean) =>
+                          handleSymptomChange("jointPain", checked === true)
+                        }
+                      />
+                      <Label htmlFor="jointPain">Joint Pain</Label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="nausea"
+                        checked={userData.symptoms.nausea}
+                        onCheckedChange={(checked: boolean) =>
+                          handleSymptomChange("nausea", checked === true)
+                        }
+                      />
+                      <Label htmlFor="nausea">Nausea</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="appetite"
+                        checked={userData.symptoms.appetite}
+                        onCheckedChange={(checked: boolean) =>
+                          handleSymptomChange("appetite", checked === true)
+                        }
+                      />
+                      <Label htmlFor="appetite">Loss of Appetite</Label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6 mt-6">
+                  <div>
+                    <div className="flex justify-between">
+                      <Label>Abdominal Pain Level</Label>
+                      <span className="text-sm text-muted-foreground">
+                        {userData.symptoms.abdominalPain / 10}/10
+                      </span>
+                    </div>
+                    <Slider
+                      value={[userData.symptoms.abdominalPain]}
+                      min={0}
+                      max={100}
+                      step={10}
+                      onValueChange={(value) =>
+                        handleSymptomChange("abdominalPain", value[0])
+                      }
+                      className="mt-2"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between">
+                      <Label>Fatigue Level</Label>
+                      <span className="text-sm text-muted-foreground">
+                        {userData.symptoms.fatigue / 10}/10
+                      </span>
+                    </div>
+                    <Slider
+                      value={[userData.symptoms.fatigue]}
+                      min={0}
+                      max={100}
+                      step={10}
+                      onValueChange={(value) =>
+                        handleSymptomChange("fatigue", value[0])
+                      }
+                      className="mt-2"
+                    />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="risk">
+              <div className="space-y-4">
+                <p className="text-muted-foreground mb-4">
+                  Select any risk factors that apply to you:
+                </p>
+
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="recentTravel"
+                      checked={userData.riskFactors.includes("recentTravel")}
+                      onCheckedChange={() =>
+                        handleRiskFactorToggle("recentTravel")
+                      }
+                    />
+                    <Label htmlFor="recentTravel">
+                      Recent Travel to High-Risk Areas
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="bloodTransfusion"
+                      checked={userData.riskFactors.includes(
+                        "bloodTransfusion"
+                      )}
+                      onCheckedChange={() =>
+                        handleRiskFactorToggle("bloodTransfusion")
+                      }
+                    />
+                    <Label htmlFor="bloodTransfusion">
+                      History of Blood Transfusion
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="unsafeInjection"
+                      checked={userData.riskFactors.includes("unsafeInjection")}
+                      onCheckedChange={() =>
+                        handleRiskFactorToggle("unsafeInjection")
+                      }
+                    />
+                    <Label htmlFor="unsafeInjection">
+                      History of Unsafe Injection Practices
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="contactWithInfected"
+                      checked={userData.riskFactors.includes(
+                        "contactWithInfected"
+                      )}
+                      onCheckedChange={() =>
+                        handleRiskFactorToggle("contactWithInfected")
+                      }
+                    />
+                    <Label htmlFor="contactWithInfected">
+                      Contact with Infected Person
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="selection">
+              <div className="space-y-6">
+                <div>
+                  <Label
+                    htmlFor="hepatitis-type"
+                    className="text-lg font-medium"
+                  >
+                    Select Hepatitis Type
+                  </Label>
+                  <p className="text-muted-foreground mb-4">
+                    Based on your knowledge or previous diagnosis, which type of
+                    hepatitis do you think you might have?
                   </p>
-                ))}
-                <div className="text-xs mt-1 opacity-70">
-                  {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+
+                  <RadioGroup
+                    value={userData.hepatitisType}
+                    onValueChange={(value: any) =>
+                      setUserData((prev) => ({ ...prev, hepatitisType: value }))
+                    }
+                    className="space-y-4 mt-2"
+                  >
+                    <div className="flex items-start space-x-3">
+                      <RadioGroupItem
+                        value="hepatitisB"
+                        id="hepatitisB"
+                        className="mt-1"
+                      />
+                      <div>
+                        <Label htmlFor="hepatitisB" className="font-medium">
+                          Hepatitis B
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Transmitted through blood, semen, and other body
+                          fluids. Can cause both acute and chronic infection.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <RadioGroupItem
+                        value="hepatitisC"
+                        id="hepatitisC"
+                        className="mt-1"
+                      />
+                      <div>
+                        <Label htmlFor="hepatitisC" className="font-medium">
+                          Hepatitis C
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Primarily spread through contact with infected blood.
+                          Often becomes chronic.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <RadioGroupItem
+                        value="unlikely"
+                        id="unlikely"
+                        className="mt-1"
+                      />
+                      <div>
+                        <Label htmlFor="unlikely" className="font-medium">
+                          No Hepatitis / Not Sure
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          I don't think I have hepatitis or I'm not sure.
+                        </p>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="bg-muted p-4 rounded-md mt-6">
+                  <p className="text-sm">
+                    <strong>Note:</strong> This selection is not a diagnosis.
+                    For accurate diagnosis, please consult with a healthcare
+                    professional.
+                  </p>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <div id="prediction-results" className="animate-fade-in">
+            <div className="mb-6 p-4 rounded-lg bg-muted">
+              <div className="text-center">
+                <h3 className="text-xl font-bold mb-2">
+                  {userData.hepatitisType === "hepatitisB" &&
+                    "Hepatitis B Information"}
+                  {userData.hepatitisType === "hepatitisC" &&
+                    "Hepatitis C Information"}
+                  {userData.hepatitisType === "unlikely" &&
+                    "Hepatitis Information"}
+                </h3>
+
+                <Badge
+                  className={`mb-4 ${
+                    userData.hepatitisType === "unlikely"
+                      ? "bg-green-500"
+                      : "bg-amber-500"
+                  }`}
+                >
+                  {userData.hepatitisType === "hepatitisB" &&
+                    "Hepatitis B Selected"}
+                  {userData.hepatitisType === "hepatitisC" &&
+                    "Hepatitis C Selected"}
+                  {userData.hepatitisType === "unlikely" &&
+                    "No Hepatitis Selected"}
+                </Badge>
+
+                <div className="text-left mt-6">
+                  {userData.hepatitisType === "hepatitisB" && (
+                    <div className="space-y-4">
+                      <p>
+                        <strong>About Hepatitis B:</strong> Hepatitis B is a
+                        viral infection that attacks the liver and can cause
+                        both acute and chronic disease. It is transmitted
+                        through contact with the blood or other body fluids of
+                        an infected person.
+                      </p>
+                      <p>
+                        <strong>Key Facts:</strong>
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>
+                          Hepatitis B is spread through blood, semen, and other
+                          body fluids
+                        </li>
+                        <li>
+                          It can cause both acute (short-term) and chronic
+                          (long-term) infection
+                        </li>
+                        <li>A vaccine is available to prevent Hepatitis B</li>
+                        <li>
+                          Symptoms may include fatigue, jaundice, abdominal
+                          pain, and dark urine
+                        </li>
+                        <li>
+                          Some people with Hepatitis B don't experience any
+                          symptoms
+                        </li>
+                      </ul>
+                      <p>
+                        <strong>Treatment:</strong> Acute Hepatitis B usually
+                        doesn't require specific treatment. For chronic
+                        Hepatitis B, medications like entecavir and tenofovir
+                        can help fight the virus and slow liver damage.
+                      </p>
+                    </div>
+                  )}
+
+                  {userData.hepatitisType === "hepatitisC" && (
+                    <div className="space-y-4">
+                      <p>
+                        <strong>About Hepatitis C:</strong> Hepatitis C is a
+                        viral infection caused by the Hepatitis C virus (HCV)
+                        that primarily affects the liver. It is often referred
+                        to as a "silent epidemic" because many people don't know
+                        they're infected.
+                      </p>
+                      <p>
+                        <strong>Key Facts:</strong>
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>
+                          Hepatitis C is primarily spread through contact with
+                          infected blood
+                        </li>
+                        <li>
+                          It often becomes chronic and can lead to serious liver
+                          problems if untreated
+                        </li>
+                        <li>
+                          Many people with Hepatitis C don't have symptoms until
+                          liver damage occurs
+                        </li>
+                        <li>
+                          Unlike Hepatitis B, there is no vaccine for Hepatitis
+                          C
+                        </li>
+                        <li>
+                          Effective treatments are available that can cure
+                          Hepatitis C in most cases
+                        </li>
+                      </ul>
+                      <p>
+                        <strong>Treatment:</strong> Modern treatments like
+                        direct-acting antivirals (DAAs) can cure Hepatitis C in
+                        8-12 weeks with minimal side effects.
+                      </p>
+                    </div>
+                  )}
+
+                  {userData.hepatitisType === "unlikely" && (
+                    <div className="space-y-4">
+                      <p>
+                        <strong>General Hepatitis Information:</strong>{" "}
+                        Hepatitis is an inflammation of the liver. It can be
+                        caused by various factors, including viral infections,
+                        alcohol consumption, certain medications, and toxins.
+                      </p>
+                      <p>
+                        <strong>Key Facts About Hepatitis:</strong>
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>
+                          There are five main types of viral hepatitis: A, B, C,
+                          D, and E
+                        </li>
+                        <li>
+                          Symptoms may include fatigue, jaundice, abdominal
+                          pain, and dark urine
+                        </li>
+                        <li>
+                          Some types of hepatitis can be prevented with vaccines
+                        </li>
+                        <li>
+                          Maintaining good hygiene and avoiding risk factors can
+                          help prevent hepatitis
+                        </li>
+                      </ul>
+                      <p>
+                        <strong>Prevention:</strong> Practice good hygiene, get
+                        vaccinated for Hepatitis A and B if available, avoid
+                        sharing personal items that may have blood on them, and
+                        practice safe sex.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start mb-4">
-              <div className="bg-muted rounded-lg p-3 flex items-center">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                <span>Thinking...</span>
-              </div>
+
+            <div className="bg-primary/10 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2">Important Note:</h4>
+              <p>
+                This information is based on your selection and is not a medical
+                diagnosis. For accurate diagnosis, please consult with a
+                healthcare professional.
+              </p>
             </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-        <div className="flex gap-2">
-          <Input
-            placeholder="Type your message..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                handleSendMessage()
-              }
-            }}
-            disabled={loading}
-          />
-          <Button onClick={handleSendMessage} disabled={loading || !input.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
+
+            <div className="mt-6">
+              <h4 className="font-semibold mb-3">Next Steps:</h4>
+              <ul className="space-y-2">
+                <li className="flex items-start">
+                  <span className="mr-2 text-primary">✓</span>
+                  <span>
+                    Consult with a healthcare provider for proper testing and
+                    diagnosis
+                  </span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2 text-primary">✓</span>
+                  <span>Mention your symptoms and concerns to your doctor</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2 text-primary">✓</span>
+                  <span>
+                    Learn more about hepatitis in our education section
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={resetChat}>
-          <RefreshCw className="h-4 w-4 mr-2" /> Reset Chat
-        </Button>
-        {prediction && (
-          <Button onClick={downloadResults}>
-            <Download className="h-4 w-4 mr-2" /> Download Results
-          </Button>
+        {!showResults ? (
+          <>
+            {activeTab !== "basic" && (
+              <Button variant="outline" onClick={prevTab}>
+                Previous
+              </Button>
+            )}
+            {activeTab !== "selection" ? (
+              <Button onClick={nextTab}>Next</Button>
+            ) : (
+              <Button onClick={handleSubmit} disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Processing...
+                  </>
+                ) : (
+                  "Submit"
+                )}
+              </Button>
+            )}
+            {activeTab === "basic" && <div></div>}
+          </>
+        ) : (
+          <>
+            <Button variant="outline" onClick={resetForm}>
+              Start Over
+            </Button>
+            <Button onClick={downloadResults}>
+              <Download className="h-4 w-4 mr-2" /> Download Results
+            </Button>
+          </>
         )}
       </CardFooter>
     </Card>
-  )
+  );
 }
 
 // Helper functions
-function isAffirmative(input: string): boolean {
-  const affirmativeTerms = ["yes", "yeah", "yep", "sure", "ok", "okay", "y", "yup", "correct", "right", "true"]
-  return affirmativeTerms.some((term) => input.toLowerCase().includes(term))
-}
-
-function isNegative(input: string): boolean {
-  const negativeTerms = ["no", "nope", "nah", "n", "not", "incorrect", "wrong", "false"]
-  return negativeTerms.some((term) => input.toLowerCase().includes(term))
-}
-
-function parseAgeGroup(input: string): string | null {
-  const lowerInput = input.toLowerCase()
-
-  if (lowerInput.includes("under 18") || lowerInput.includes("<18") || lowerInput.match(/\b(0|1[0-7])\b/)) {
-    return "under18"
-  } else if (lowerInput.includes("18-30") || lowerInput.match(/\b(1[8-9]|2[0-9]|30)\b/)) {
-    return "18-30"
-  } else if (lowerInput.includes("31-45") || lowerInput.match(/\b(3[1-9]|4[0-5])\b/)) {
-    return "31-45"
-  } else if (lowerInput.includes("46-60") || lowerInput.match(/\b(4[6-9]|5[0-9]|60)\b/)) {
-    return "46-60"
-  } else if (
-    lowerInput.includes("over 60") ||
-    lowerInput.includes(">60") ||
-    lowerInput.match(/\b(6[1-9]|[7-9][0-9]|[1-9][0-9]{2})\b/)
-  ) {
-    return "over60"
+function formatAgeGroup(age: string): string {
+  switch (age) {
+    case "under18":
+      return "Under 18";
+    case "18-30":
+      return "18-30";
+    case "31-45":
+      return "31-45";
+    case "46-60":
+      return "46-60";
+    case "over60":
+      return "Over 60";
+    default:
+      return age;
   }
-
-  return null
 }
 
-function parseGender(input: string): string | null {
-  const lowerInput = input.toLowerCase()
-
-  if (lowerInput.includes("male") || lowerInput === "m") {
-    return "male"
-  } else if (lowerInput.includes("female") || lowerInput === "f") {
-    return "female"
-  } else if (lowerInput.includes("other") || lowerInput.includes("non-binary") || lowerInput.includes("nonbinary")) {
-    return "other"
-  }
-
-  return null
-}
-
-function parseHepatitisType(input: string): string | null {
-  const lowerInput = input.toLowerCase()
-
-  if (lowerInput.includes("b") || lowerInput.includes("hbv")) {
-    return "hepatitisB"
-  } else if (lowerInput.includes("c") || lowerInput.includes("hcv")) {
-    return "hepatitisC"
-  } else if (
-    lowerInput.includes("no") ||
-    lowerInput.includes("none") ||
-    lowerInput.includes("not") ||
-    lowerInput.includes("unsure") ||
-    lowerInput.includes("don't know")
-  ) {
-    return "unlikely"
-  }
-
-  return null
+function formatGender(gender: string): string {
+  return gender.charAt(0).toUpperCase() + gender.slice(1);
 }
 
 function formatHepatitisType(type: string): string {
-  if (type === "hepatitisB") return "Hepatitis B"
-  if (type === "hepatitisC") return "Hepatitis C"
-  return "No Hepatitis / Unsure"
+  switch (type) {
+    case "hepatitisB":
+      return "Hepatitis B";
+    case "hepatitisC":
+      return "Hepatitis C";
+    case "unlikely":
+      return "No Hepatitis / Not Sure";
+    default:
+      return type;
+  }
 }
 
-function generateSummary(userData: UserData): string {
-  let summary = ""
-
-  if (userData.age) {
-    summary += `Age Group: ${userData.age.replace(/([A-Z])/g, " $1").trim()}\n`
+function formatRiskFactor(factor: string): string {
+  switch (factor) {
+    case "recentTravel":
+      return "Recent Travel to High-Risk Areas";
+    case "bloodTransfusion":
+      return "History of Blood Transfusion";
+    case "unsafeInjection":
+      return "History of Unsafe Injection Practices";
+    case "contactWithInfected":
+      return "Contact with Infected Person";
+    default:
+      return factor;
   }
-
-  if (userData.gender) {
-    summary += `Gender: ${userData.gender.charAt(0).toUpperCase() + userData.gender.slice(1)}\n`
-  }
-
-  summary += "\nSymptoms:\n"
-  if (userData.symptoms.jaundice !== undefined) {
-    summary += `- Jaundice (yellowing of skin/eyes): ${userData.symptoms.jaundice ? "Yes" : "No"}\n`
-  }
-  if (userData.symptoms.darkUrine !== undefined) {
-    summary += `- Dark urine: ${userData.symptoms.darkUrine ? "Yes" : "No"}\n`
-  }
-  if (userData.symptoms.abdominalPain !== undefined) {
-    summary += `- Abdominal pain: ${userData.symptoms.abdominalPain / 10}/10\n`
-  }
-  if (userData.symptoms.fatigue !== undefined) {
-    summary += `- Fatigue: ${userData.symptoms.fatigue / 10}/10\n`
-  }
-  if (userData.symptoms.fever !== undefined) {
-    summary += `- Fever: ${userData.symptoms.fever ? "Yes" : "No"}\n`
-  }
-
-  summary += "\nRisk Factors:\n"
-  if (userData.riskFactors.length > 0) {
-    summary += "- Exposure to risk factors reported\n"
-  } else {
-    summary += "- No risk factors reported\n"
-  }
-
-  return summary
 }
