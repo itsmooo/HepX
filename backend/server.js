@@ -239,83 +239,139 @@ app.get("/api/download-model", (req, res) => {
   }
 })
 
-// Route to make predictions on a new dataset
-app.post("/api/predict", upload.single("file"), (req, res) => {
+// Route to handle predictions
+app.post("/api/predict", express.json(), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" })
+    const { age, gender, symptoms, riskFactors } = req.body;
+    
+    if (!age || !gender || !symptoms) {
+      return res.status(400).json({
+        error: 'Missing required fields'
+      });
     }
 
-    const inputFile = req.file.path
-    const outputFile = path.join(uploadsDir, `predictions_${Date.now()}.csv`)
-
-    // Run the prediction script
-    const pythonProcess = spawn("python", [path.join(__dirname, "predict.py"), inputFile, outputFile])
-
-    let pythonOutput = ""
-    let pythonError = ""
-
-    pythonProcess.stdout.on("data", (data) => {
-      console.log(`Python stdout: ${data}`)
-      pythonOutput += data.toString()
-    })
-
-    pythonProcess.stderr.on("data", (data) => {
-      console.error(`Python stderr: ${data}`)
-      pythonError += data.toString()
-    })
-
-    pythonProcess.on("close", (code) => {
+    // Create input data for prediction with proper feature names
+    const inputData = {
+      has_jaundice: symptoms.jaundice ? 1 : 0,
+      has_dark_urine: symptoms.dark_urine ? 1 : 0,
+      has_pain: symptoms.pain ? 1 : 0,
+      has_fatigue: symptoms.fatigue ? 1 : 0,
+      has_nausea: symptoms.nausea ? 1 : 0,
+      has_vomiting: symptoms.vomiting ? 1 : 0,
+      has_fever: symptoms.fever ? 1 : 0,
+      has_loss_of_appetite: symptoms.loss_of_appetite ? 1 : 0,
+      has_joint_pain: symptoms.joint_pain ? 1 : 0,
+      SymptomCount: Object.values(symptoms).filter(Boolean).length,
+      Severity: 1.0,
+      SymptomLength: Object.values(symptoms).join(' ').length,
+      DiagnosisDate: new Date().toISOString().split('T')[0]
+    };
+    
+    // Save input data to CSV with headers
+    const headers = Object.keys(inputData);
+    const values = Object.values(inputData);
+    
+    const csvData = [
+      headers.join(','),
+      values.join(',')
+    ].join('\n');
+    
+    fs.writeFileSync(path.join(uploadsDir, 'hepatitis_dataset.csv'), csvData);
+    
+    // Run prediction
+    const pythonProcess = spawn('python', [path.join(__dirname, 'predict.py'), path.join(uploadsDir, 'hepatitis_dataset.csv')]);
+    
+    let pythonOutput = '';
+    let pythonError = '';
+    
+    pythonProcess.stdout.on('data', (data) => {
+      console.log(`Python stdout: ${data}`);
+      pythonOutput += data.toString();
+    });
+    
+    pythonProcess.stderr.on('data', (data) => {
+      console.error(`Python stderr: ${data}`);
+      pythonError += data.toString();
+    });
+    
+    pythonProcess.on('close', (code) => {
       if (code !== 0) {
-        console.error(`Python process exited with code ${code}`)
-        return res.status(500).json({
-          error: "Prediction failed",
-          details: pythonError,
-        })
+        console.error(`Python process exited with code ${code}`);
+        return res.status(500).json({ 
+          error: pythonError,
+          details: "Prediction failed. Please check the server logs for more information."
+        });
       }
-
+      
       try {
-        // Parse the JSON output from the Python script
-        const results = JSON.parse(pythonOutput)
-
-        // Add download link for the predictions CSV
-        if (fs.existsSync(outputFile)) {
-          results.downloadUrl = `/api/download-predictions/${path.basename(outputFile)}`
+        const result = JSON.parse(pythonOutput);
+        if (result.error) {
+          return res.status(500).json({ 
+            error: result.error,
+            details: "Error during prediction process"
+          });
         }
-
-        res.json(results)
-      } catch (parseError) {
-        console.error("Error parsing Python output:", parseError)
-        res.status(500).json({
-          error: "Failed to parse prediction results",
-          details: pythonOutput,
-        })
+        res.json({
+          success: true,
+          prediction: result
+        });
+      } catch (error) {
+        console.error('Error parsing Python output:', error);
+        res.status(500).json({ 
+          error: 'Failed to parse prediction results',
+          details: error.message
+        });
       }
-    })
+    });
   } catch (error) {
-    console.error("Error in /api/predict:", error)
-    res.status(500).json({ error: "Prediction failed", details: error.message })
+    console.error('Error in /api/predict:', error);
+    res.status(500).json({
+      error: error.message || 'Internal server error'
+    });
   }
-})
+});
 
-// Route to download prediction results
-app.get("/api/download-predictions/:filename", (req, res) => {
-  try {
-    const { filename } = req.params
-    const filePath = path.join(uploadsDir, filename)
+// Add health check endpoint
+app.get("/api/health", (req, res) => {
+  console.log("Health check requested");
+  res.json({ status: "Server is running" });
+});
 
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: "Prediction file not found" })
-    }
+// Add logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
-    res.download(filePath, "hepatitis_predictions.csv")
-  } catch (error) {
-    console.error(`Error in /api/download-predictions/${req.params.filename}:`, error)
-    res.status(500).json({ error: "Failed to download predictions" })
-  }
-})
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
-})
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Health check available at http://localhost:${PORT}/api/health`);
+  console.log(`Prediction endpoint available at http://localhost:${PORT}/api/predict`);
+});
+
+// Handle server errors
+server.on('error', (error) => {
+  console.error('Server error:', error);
+});
+
+// Handle process termination
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
+});

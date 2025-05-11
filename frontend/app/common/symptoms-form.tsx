@@ -104,10 +104,10 @@ const SymptomsForm = () => {
     e.preventDefault()
 
     // Validation
-    if (!formState.age || !formState.gender || !formState.hepatitisType) {
+    if (!formState.age || !formState.gender) {
       toast({
         title: "Missing Information",
-        description: "Please select your age group, gender, and hepatitis type to continue.",
+        description: "Please select your age group and gender to continue.",
         variant: "destructive",
       })
       return
@@ -116,29 +116,26 @@ const SymptomsForm = () => {
     try {
       setLoading(true)
 
-      // Instead of calling the API, we'll use the selected hepatitis type directly
-      const result: PredictionResult = {
-        result: formState.hepatitisType as "hepatitisB" | "hepatitisC" | "unlikely",
-        score: 0,
-        details: {
-          symptomScore: 0,
-          riskScore: 0,
-        },
+      // Create form data to send to the API
+      const formData = new FormData()
+      formData.append("age", formState.age)
+      formData.append("gender", formState.gender)
+      formData.append("symptoms", JSON.stringify(formState.symptoms))
+      formData.append("riskFactors", JSON.stringify(formState.riskFactors))
+
+      // Call the API
+      const response = await fetch("/api/predict", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to get prediction")
       }
 
-      // Calculate symptom score for display purposes
-      const symptomScore = Object.values(formState.symptoms).filter(
-        (val) => (typeof val === "boolean" && val === true) || (typeof val === "number" && val > 50),
-      ).length
-
-      // Calculate risk score for display purposes
-      const riskScore = formState.riskFactors.length
-
-      result.score = symptomScore + riskScore
-      result.details.symptomScore = symptomScore
-      result.details.riskScore = riskScore
-
-      setPredictionResult(result)
+      const data = await response.json()
+      setPredictionResult(data)
       setShowResults(true)
 
       // Scroll to results

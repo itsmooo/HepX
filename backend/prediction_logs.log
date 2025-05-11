@@ -1,0 +1,124 @@
+2025-05-11 11:16:31,719 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 11:16:31,741 - INFO - Starting prediction process
+2025-05-11 11:16:31,741 - INFO - Input data shape: (1, 9)
+2025-05-11 11:16:31,742 - INFO - Loading model from ./output/hepatitis_model.pkl
+2025-05-11 11:16:33,086 - INFO - Loading feature columns from ./output/feature_columns.json
+2025-05-11 11:16:33,087 - INFO - Preprocessing input data
+2025-05-11 11:16:33,103 - INFO - Features used for prediction: ['SymptomCount', 'Severity', 'SymptomLength', 'has_jaundice', 'has_fatigue', 'has_nausea', 'has_vomiting', 'has_fever', 'has_pain', 'DiagnosisYear', 'DiagnosisMonth']
+2025-05-11 11:16:33,104 - INFO - Making predictions
+2025-05-11 11:16:33,113 - INFO - Prediction completed
+2025-05-11 11:16:33,113 - INFO - Predicted classes: ['Hepatitis C']
+2025-05-11 11:16:33,113 - INFO - Class probabilities: [[0.08 0.92]]
+2025-05-11 11:16:33,117 - INFO - Predictions saved to C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\predictions_1746951390872.csv
+2025-05-11 11:16:33,119 - INFO - Response: {"success": true, "message": "Predictions saved to C:\\Users\\hp\\OneDrive\\Desktop\\hapetitis-v2\\backend\\uploads\\predictions_1746951390872.csv", "predictions": [{"predicted_class": "Hepatitis C", "probability_Hepatitis A": 0.08, "probability_Hepatitis C": 0.92}], "total_predictions": 1}
+2025-05-11 15:55:22,341 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 15:55:22,358 - INFO - Starting prediction process
+2025-05-11 15:55:22,358 - INFO - Input data shape: (1, 9)
+2025-05-11 15:55:22,359 - INFO - Loading model from ./output/hepatitis_model.pkl
+2025-05-11 15:55:28,256 - INFO - Loading feature columns from ./output/feature_columns.json
+2025-05-11 15:55:28,258 - INFO - Preprocessing input data
+2025-05-11 15:55:28,273 - INFO - Symptom scores - Hepatitis A: [0], Hepatitis C: [1]
+2025-05-11 15:55:28,280 - ERROR - Error during prediction: "['has_pain'] not in index"
+2025-05-11 15:55:28,280 - ERROR - Error: "['has_pain'] not in index"
+2025-05-11 15:55:56,687 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 15:55:56,703 - INFO - Starting prediction process
+2025-05-11 15:55:56,703 - INFO - Input data shape: (1, 9)
+2025-05-11 15:55:56,703 - INFO - Loading model from ./output/hepatitis_model.pkl
+2025-05-11 15:55:57,611 - INFO - Loading feature columns from ./output/feature_columns.json
+2025-05-11 15:55:57,612 - INFO - Preprocessing input data
+2025-05-11 15:55:57,620 - INFO - Symptom scores - Hepatitis A: [0], Hepatitis C: [1]
+2025-05-11 15:55:57,622 - ERROR - Error during prediction: "['has_pain'] not in index"
+2025-05-11 15:55:57,623 - ERROR - Error: "['has_pain'] not in index"
+2025-05-11 15:58:28,801 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 15:58:28,828 - INFO - Starting prediction process
+2025-05-11 15:58:28,828 - INFO - Input data shape: (1, 9)
+2025-05-11 15:58:28,828 - INFO - Loading model from ./output/hepatitis_model.pkl
+2025-05-11 15:58:30,218 - INFO - Loading feature columns from ./output/feature_columns.json
+2025-05-11 15:58:30,218 - INFO - Preprocessing input data
+2025-05-11 15:58:30,224 - INFO - Symptom scores - Hepatitis A: [0], Hepatitis C: [0]
+2025-05-11 15:58:30,228 - INFO - Features used for prediction: ['SymptomCount', 'Severity', 'SymptomLength', 'has_jaundice', 'has_fatigue', 'has_nausea', 'has_vomiting', 'has_fever', 'has_pain', 'DiagnosisYear', 'DiagnosisMonth']
+2025-05-11 15:58:30,229 - INFO - Making predictions
+2025-05-11 15:58:30,239 - ERROR - Error during prediction: incompatible index of inserted column with frame index
+2025-05-11 15:58:30,239 - ERROR - Error: incompatible index of inserted column with frame index
+2025-05-11 16:05:09,609 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 16:05:09,630 - INFO - Starting prediction process
+2025-05-11 16:05:09,630 - INFO - Input data shape: (1, 9)
+2025-05-11 16:05:09,630 - INFO - Loading model from ./output/hepatitis_model.pkl
+2025-05-11 16:05:11,070 - INFO - Loading feature columns from ./output/feature_columns.json
+2025-05-11 16:05:11,070 - INFO - Preprocessing input data
+2025-05-11 16:05:11,078 - ERROR - Error during prediction: "['has_loss_of_appetite', 'has_dark_urine'] not in index"
+2025-05-11 16:05:11,078 - ERROR - Error: "['has_loss_of_appetite', 'has_dark_urine'] not in index"
+2025-05-11 16:07:55,140 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 16:07:55,163 - INFO - Starting prediction process
+2025-05-11 16:07:55,164 - INFO - Input data shape: (1, 9)
+2025-05-11 16:07:55,164 - INFO - Loading model from ./output/hepatitis_model.pkl
+2025-05-11 16:07:56,380 - INFO - Loading feature columns from ./output/feature_columns.json
+2025-05-11 16:07:56,381 - INFO - Preprocessing input data
+2025-05-11 16:07:56,398 - INFO - Symptom scores - Hepatitis A: [1], Hepatitis C: [1]
+2025-05-11 16:07:56,399 - INFO - Features used for prediction: ['SymptomCount', 'Severity', 'SymptomLength', 'has_jaundice', 'has_fatigue', 'has_nausea', 'has_vomiting', 'has_fever', 'has_pain', 'DiagnosisYear', 'DiagnosisMonth']
+2025-05-11 16:07:56,400 - INFO - Making predictions
+2025-05-11 16:07:56,409 - ERROR - Error during prediction: incompatible index of inserted column with frame index
+2025-05-11 16:07:56,409 - ERROR - Error: incompatible index of inserted column with frame index
+2025-05-11 16:09:24,707 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 16:09:24,720 - INFO - Starting prediction process
+2025-05-11 16:09:24,720 - INFO - Input data shape: (1, 9)
+2025-05-11 16:09:24,720 - INFO - Loading model from ./output/hepatitis_model.pkl
+2025-05-11 16:09:25,431 - INFO - Loading feature columns from ./output/feature_columns.json
+2025-05-11 16:09:25,431 - INFO - Preprocessing input data
+2025-05-11 16:09:25,441 - INFO - Symptom scores - Hepatitis A: [0], Hepatitis C: [0]
+2025-05-11 16:09:25,442 - INFO - Features used for prediction: ['SymptomCount', 'Severity', 'SymptomLength', 'has_jaundice', 'has_fatigue', 'has_nausea', 'has_vomiting', 'has_fever', 'has_pain', 'DiagnosisYear', 'DiagnosisMonth']
+2025-05-11 16:09:25,442 - INFO - Making predictions
+2025-05-11 16:09:25,452 - ERROR - Error during prediction: incompatible index of inserted column with frame index
+2025-05-11 16:09:25,452 - ERROR - Error: incompatible index of inserted column with frame index
+2025-05-11 16:22:21,253 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 16:22:21,269 - INFO - Starting prediction process
+2025-05-11 16:22:21,269 - INFO - Input data shape: (12, 2)
+2025-05-11 16:22:21,269 - INFO - Loading model from ./output/hepatitis_model.pkl
+2025-05-11 16:22:22,588 - INFO - Loading feature columns from ./output/feature_columns.json
+2025-05-11 16:22:22,589 - INFO - Preprocessing input data
+2025-05-11 16:22:22,592 - ERROR - Error during prediction: invalid literal for int() with base 10: 'dark_urine'
+2025-05-11 16:22:22,592 - ERROR - Error: invalid literal for int() with base 10: 'dark_urine'
+2025-05-11 16:24:05,468 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 16:24:05,482 - INFO - Starting prediction process
+2025-05-11 16:24:05,482 - INFO - Input data shape: (12, 2)
+2025-05-11 16:24:05,482 - INFO - Loading model from ./output/hepatitis_model.pkl
+2025-05-11 16:24:06,619 - INFO - Loading feature columns from ./output/feature_columns.json
+2025-05-11 16:24:06,619 - INFO - Preprocessing input data
+2025-05-11 16:24:06,621 - ERROR - Error during prediction: invalid literal for int() with base 10: 'dark_urine'
+2025-05-11 16:24:06,621 - ERROR - Error: invalid literal for int() with base 10: 'dark_urine'
+2025-05-11 16:26:11,343 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 16:26:11,366 - INFO - Starting prediction process
+2025-05-11 16:26:11,366 - INFO - Input data shape: (12, 2)
+2025-05-11 16:26:11,366 - INFO - Loading model from ./output/hepatitis_model.pkl
+2025-05-11 16:26:12,714 - INFO - Loading feature columns from ./output/feature_columns.json
+2025-05-11 16:26:12,714 - INFO - Preprocessing input data
+2025-05-11 16:26:12,719 - ERROR - Error during prediction: cannot convert the series to <class 'int'>
+2025-05-11 16:26:12,720 - ERROR - Error: cannot convert the series to <class 'int'>
+2025-05-11 16:30:03,436 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 16:30:03,468 - INFO - Loading input data from    has_jaundice  has_dark_urine  ...  SymptomLength  DiagnosisDate
+0             1               1  ...             50     2025-05-11
+
+[1 rows x 13 columns]
+2025-05-11 16:30:03,468 - ERROR - Error during prediction: argument of type 'method' is not iterable
+2025-05-11 16:30:03,468 - ERROR - Error: argument of type 'method' is not iterable
+2025-05-11 16:49:39,716 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 16:49:39,740 - INFO - Loading input data from    has_jaundice  has_dark_urine  ...  SymptomLength  DiagnosisDate
+0             1               1  ...             50     2025-05-11
+
+[1 rows x 13 columns]
+2025-05-11 16:49:39,740 - ERROR - Error during prediction: argument of type 'method' is not iterable
+2025-05-11 16:49:39,740 - ERROR - Error: argument of type 'method' is not iterable
+2025-05-11 16:52:19,217 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 16:52:19,249 - INFO - Loading input data from    has_jaundice  has_dark_urine  ...  SymptomLength  DiagnosisDate
+0             0               1  ...             51     2025-05-11
+
+[1 rows x 13 columns]
+2025-05-11 16:52:19,249 - ERROR - Error during prediction: argument of type 'method' is not iterable
+2025-05-11 16:52:19,249 - ERROR - Error: argument of type 'method' is not iterable
+2025-05-11 16:54:12,740 - INFO - Loading input data from C:\Users\hp\OneDrive\Desktop\hapetitis-v2\backend\uploads\hepatitis_dataset.csv
+2025-05-11 16:54:12,780 - INFO - Loading input data from    has_jaundice  has_dark_urine  ...  SymptomLength  DiagnosisDate
+0             0               1  ...             50     2025-05-11
+
+[1 rows x 13 columns]
+2025-05-11 16:54:12,781 - ERROR - Error during prediction: argument of type 'method' is not iterable
+2025-05-11 16:54:12,781 - ERROR - Error: argument of type 'method' is not iterable

@@ -1,2 +1,2 @@
-PatientID,Age,Gender,HepatitisType,Symptoms,SymptomCount,Severity,DiagnosisDate,Treatment
-P1746950244852,18-30,male,,jaundice, abdominalPain (30%), fatigue (20%), fever, nausea. Risk factors: recentTravel, bloodTransfusion,3,1.3,2025-05-11,
+has_jaundice,has_dark_urine,has_pain,has_fatigue,has_nausea,has_vomiting,has_fever,has_loss_of_appetite,has_joint_pain,SymptomCount,Severity,SymptomLength,DiagnosisDate
+0,1,1,1,0,0,1,0,0,4,1,49,2025-05-11
