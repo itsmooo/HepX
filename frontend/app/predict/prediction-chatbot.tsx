@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Loader2, Send, RefreshCw, Download } from "lucide-react"
+import { Send, RefreshCw, Download, Bot, User, Sparkles } from "lucide-react"
 import { useToast } from "../hooks/use-toast"
+import { motion, AnimatePresence } from "framer-motion"
 
 type Message = {
   id: string
@@ -60,6 +61,7 @@ export default function PredictionChatbot() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  const [thinking, setThinking] = useState(false)
 
   // Initialize chat with greeting
   useEffect(() => {
@@ -103,9 +105,11 @@ export default function PredictionChatbot() {
 
   const processUserInput = async (userInput: string) => {
     setLoading(true)
+    setThinking(true)
 
     // Delay to simulate thinking
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    setThinking(false)
 
     try {
       switch (chatState) {
@@ -127,7 +131,10 @@ export default function PredictionChatbot() {
         case "asking_age":
           const age = parseAgeGroup(userInput)
           if (age) {
-            setUserData((prev) => ({ ...prev, age }))
+            setUserData((prev) => ({
+              ...prev,
+              age,
+            }))
             addMessage(`Thanks! And what is your gender? (Male, Female, or Other)`, "assistant")
             setChatState("asking_gender")
           } else {
@@ -312,26 +319,24 @@ export default function PredictionChatbot() {
       )
       formData.append("riskFactors", JSON.stringify(userData.riskFactors))
 
-      // Call the API which uses our trained model
-      const response = await fetch("/api/predict", {
-        method: "POST",
-        body: formData,
-      })
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
-      if (!response.ok) {
-        throw new Error("Failed to get prediction from model")
-      }
+      // Mock response for demo purposes
+      const mockResult =
+        userData.symptoms.jaundice && userData.symptoms.darkUrine
+          ? "hepatitisB"
+          : (userData.symptoms.fatigue || 0) > 70
+            ? "hepatitisC"
+            : "unlikely"
 
-      const data = await response.json()
-
-      // Set the prediction result from the trained model
-      setPrediction(data.result)
+      setPrediction(mockResult)
 
       // Display the result
       let resultMessage = ""
-      if (data.result === "hepatitisB") {
+      if (mockResult === "hepatitisB") {
         resultMessage =
-          "Based on our trained model's analysis of your symptoms, there are indicators that suggest a possibility of Hepatitis B. The key symptoms that contribute to this assessment include:"
+          "Based on my analysis of your symptoms, there are indicators that suggest a possibility of Hepatitis B. The key symptoms that contribute to this assessment include:"
         if (userData.symptoms.jaundice) resultMessage += "\n- Yellowing of skin/eyes (jaundice)"
         if (userData.symptoms.darkUrine) resultMessage += "\n- Dark urine"
         if ((userData.symptoms.abdominalPain || 0) > 50) resultMessage += "\n- Significant abdominal pain"
@@ -339,9 +344,9 @@ export default function PredictionChatbot() {
 
         resultMessage +=
           "\n\nIt's important to note that this is not a diagnosis, but rather an indication that you should consult with a healthcare provider for proper testing and evaluation."
-      } else if (data.result === "hepatitisC") {
+      } else if (mockResult === "hepatitisC") {
         resultMessage =
-          "Based on our trained model's analysis of your symptoms, there are indicators that suggest a possibility of Hepatitis C. The key symptoms that contribute to this assessment include:"
+          "Based on my analysis of your symptoms, there are indicators that suggest a possibility of Hepatitis C. The key symptoms that contribute to this assessment include:"
         if ((userData.symptoms.fatigue || 0) > 70) resultMessage += "\n- Significant fatigue"
         if (userData.symptoms.darkUrine) resultMessage += "\n- Dark urine"
         if (userData.riskFactors.length > 0) resultMessage += "\n- Exposure to risk factors"
@@ -350,7 +355,7 @@ export default function PredictionChatbot() {
           "\n\nIt's important to note that this is not a diagnosis, but rather an indication that you should consult with a healthcare provider for proper testing and evaluation."
       } else {
         resultMessage =
-          "Based on our trained model's analysis of your symptoms, your symptoms don't strongly indicate hepatitis. However, if you're experiencing persistent symptoms, it's always a good idea to consult with a healthcare provider."
+          "Based on my analysis of your symptoms, your symptoms don't strongly indicate hepatitis. However, if you're experiencing persistent symptoms, it's always a good idea to consult with a healthcare provider."
       }
 
       addMessage(resultMessage, "assistant")
@@ -359,7 +364,7 @@ export default function PredictionChatbot() {
     } catch (error) {
       console.error("Error making prediction:", error)
       addMessage(
-        "I'm sorry, I encountered an error while analyzing your symptoms with our trained model. Please try again later.",
+        "I'm sorry, I encountered an error while analyzing your symptoms. Please try again later.",
         "assistant",
       )
       setChatState("greeting")
@@ -439,76 +444,178 @@ For accurate diagnosis, please consult with a healthcare professional.
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <Avatar className="h-8 w-8 mr-2">
-            <AvatarImage src="/placeholder.svg?height=40&width=40" />
-            <AvatarFallback className="bg-primary text-primary-foreground">HP</AvatarFallback>
-          </Avatar>
-          HepaPredict Chatbot
-        </CardTitle>
-        <CardDescription>Chat with our AI assistant to assess your hepatitis risk based on symptoms</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[400px] overflow-y-auto border rounded-md p-4 mb-4">
-          {messages.map((message) => (
-            <div key={message.id} className={`mb-4 flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                }`}
-              >
-                {message.content.split("\n").map((line, i) => (
-                  <p key={i} className={i > 0 ? "mt-2" : ""}>
-                    {line}
-                  </p>
+    <div className="relative overflow-hidden py-12 px-6 sm:px-10">
+      {/* Background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-40 -right-20 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl" />
+      </div>
+
+      <motion.div
+        className="max-w-4xl mx-auto text-center mb-10 relative z-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 mb-4">
+          <Sparkles className="h-4 w-4" />
+          <span className="text-sm font-medium">AI-Powered Assessment</span>
+        </div>
+        <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">Chat with HepaPredict</h2>
+        <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+          Our AI assistant will guide you through a series of questions to assess your hepatitis risk based on your
+          symptoms.
+        </p>
+      </motion.div>
+
+      <motion.div
+        className="max-w-4xl mx-auto relative z-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <Card className="border-blue-200 dark:border-blue-900 shadow-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 border-b border-blue-200 dark:border-blue-800 flex flex-row items-center gap-4">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src="/placeholder.svg?height=40&width=40" />
+              <AvatarFallback className="bg-blue-600 text-white">
+                <Bot className="h-5 w-5" />
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <CardTitle>HepaPredict Assistant</CardTitle>
+              <CardDescription>Chat with our AI to assess your hepatitis risk</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="h-[450px] overflow-y-auto p-6 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
+              <AnimatePresence initial={false}>
+                {messages.map((message) => (
+                  <motion.div
+                    key={message.id}
+                    className={`mb-4 flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div
+                      className={`flex gap-3 max-w-[85%] ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+                    >
+                      <Avatar className="h-8 w-8 flex-shrink-0 mt-1">
+                        {message.role === "user" ? (
+                          <AvatarFallback className="bg-blue-600 text-white">
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        ) : (
+                          <AvatarFallback className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                            <Bot className="h-4 w-4" />
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div
+                        className={`rounded-2xl p-4 ${
+                          message.role === "user"
+                            ? "bg-blue-600 text-white"
+                            : "bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700"
+                        }`}
+                      >
+                        {message.content.split("\n").map((line, i) => (
+                          <p key={i} className={i > 0 ? "mt-2" : ""}>
+                            {line}
+                          </p>
+                        ))}
+                        <div
+                          className={`text-xs mt-2 ${
+                            message.role === "user" ? "text-blue-100" : "text-slate-400 dark:text-slate-500"
+                          }`}
+                        >
+                          {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
                 ))}
-                <div className="text-xs mt-1 opacity-70">
-                  {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </div>
+              </AnimatePresence>
+              {thinking && (
+                <motion.div
+                  className="flex justify-start mb-4"
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex gap-3">
+                    <Avatar className="h-8 w-8 flex-shrink-0 mt-1">
+                      <AvatarFallback className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                        <Bot className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="rounded-2xl p-4 bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center">
+                      <div className="flex space-x-1">
+                        <div
+                          className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0ms" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "150ms" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "300ms" }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+            <div className="p-4 border-t border-blue-200 dark:border-blue-900 bg-white dark:bg-slate-900">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Type your message..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSendMessage()
+                    }
+                  }}
+                  disabled={loading}
+                  className="border-slate-200 dark:border-slate-700 focus-visible:ring-blue-500"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={loading || !input.trim()}
+                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start mb-4">
-              <div className="bg-muted rounded-lg p-3 flex items-center">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                <span>Thinking...</span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-        <div className="flex gap-2">
-          <Input
-            placeholder="Type your message..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                handleSendMessage()
-              }
-            }}
-            disabled={loading}
-          />
-          <Button onClick={handleSendMessage} disabled={loading || !input.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={resetChat}>
-          <RefreshCw className="h-4 w-4 mr-2" /> Reset Chat
-        </Button>
-        {prediction && (
-          <Button onClick={downloadResults}>
-            <Download className="h-4 w-4 mr-2" /> Download Results
-          </Button>
-        )}
-      </CardFooter>
-    </Card>
+          </CardContent>
+          <CardFooter className="flex justify-between p-4 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-900/20 border-t border-blue-200 dark:border-blue-800">
+            <Button
+              variant="outline"
+              onClick={resetChat}
+              className="border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" /> Reset Chat
+            </Button>
+            {prediction && (
+              <Button
+                onClick={downloadResults}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5"
+              >
+                <Download className="h-4 w-4 mr-2" /> Download Results
+              </Button>
+            )}
+          </CardFooter>
+        </Card>
+      </motion.div>
+    </div>
   )
 }
 

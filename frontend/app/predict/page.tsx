@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -21,12 +21,21 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-import { Download, Loader2 } from "lucide-react";
+import {
+  Download,
+  Loader2,
+  ChevronRight,
+  ChevronLeft,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "../common/header";
 import Footer from "../common/footer";
+import { motion, AnimatePresence } from "framer-motion";
+import { Progress } from "@/components/ui/progress";
 
 type UserData = {
   age: string;
@@ -63,8 +72,10 @@ export default function PredictionSelector() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("basic");
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [showResults, setShowResults] = useState(false);
-  const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null);
+  const [predictionResult, setPredictionResult] =
+    useState<PredictionResult | null>(null);
   const [userData, setUserData] = useState<UserData>({
     age: "",
     gender: "",
@@ -80,6 +91,25 @@ export default function PredictionSelector() {
     },
     riskFactors: [],
   });
+
+  // Simulate progress bar
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      interval = setInterval(() => {
+        setProgress((prev) => {
+          const newProgress = prev + Math.random() * 5;
+          return newProgress >= 95 ? 95 : newProgress;
+        });
+      }, 300);
+    } else if (progress > 0 && progress < 100) {
+      setProgress(100);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [loading, progress]);
 
   const handleSymptomChange = (id: string, value: boolean | number) => {
     setUserData((prev) => ({
@@ -120,9 +150,14 @@ export default function PredictionSelector() {
 
     try {
       setLoading(true);
+      setProgress(0);
+
+      // Get API URL from environment variable
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
       // Call the API with JSON data
-      const response = await fetch("http://localhost:5000/api/predict", {
+      const response = await fetch(`${API_URL}/predict`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -139,9 +174,9 @@ export default function PredictionSelector() {
             vomiting: false, // Add if needed
             fever: userData.symptoms.fever,
             loss_of_appetite: userData.symptoms.appetite,
-            joint_pain: userData.symptoms.jointPain
+            joint_pain: userData.symptoms.jointPain,
           },
-          riskFactors: userData.riskFactors
+          riskFactors: userData.riskFactors,
         }),
       });
 
@@ -151,7 +186,7 @@ export default function PredictionSelector() {
       }
 
       const data = await response.json();
-      console.log('Prediction data received:', data);
+      console.log("Prediction data received:", data);
       setPredictionResult(data);
       setShowResults(true);
 
@@ -166,7 +201,8 @@ export default function PredictionSelector() {
       console.error("Prediction error:", error);
       toast({
         title: "Error",
-        description: error.message || "There was an error processing your information.",
+        description:
+          error.message || "There was an error processing your information.",
         variant: "destructive",
       });
     } finally {
@@ -228,6 +264,22 @@ ${
     : "- None reported"
 }
 
+Prediction Results:
+${
+  predictionResult?.prediction.predictions
+    .map(
+      (pred) =>
+        `${pred.predicted_class}:
+- Probability of Hepatitis A: ${(pred["probability_Hepatitis A"] * 100).toFixed(
+          1
+        )}%
+- Probability of Hepatitis C: ${(pred["probability_Hepatitis C"] * 100).toFixed(
+          1
+        )}%`
+    )
+    .join("\n\n") || "No prediction results available."
+}
+
 Important Note:
 This is based on your selection and is not a medical diagnosis. For accurate diagnosis, please consult with a healthcare professional.
     `;
@@ -274,443 +326,682 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
     }
   };
 
+  const getProgressPercentage = () => {
+    switch (activeTab) {
+      case "basic":
+        return 33;
+      case "symptoms":
+        return 66;
+      case "risk":
+        return 100;
+      default:
+        return 0;
+    }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 100 },
+    },
+  };
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <Card className="w-full max-w-4xl mx-auto">
-          <CardHeader>
-            <CardTitle>Hepatitis Type Selector</CardTitle>
-            <CardDescription>
-              Answer a few questions to learn about different hepatitis types
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!showResults ? (
-              <Tabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="w-full"
-              >
-                <TabsList className="grid grid-cols-3 mb-8">
-                  <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                  <TabsTrigger value="symptoms">Symptoms</TabsTrigger>
-                  <TabsTrigger value="risk">Risk Factors</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="basic">
-                  <div className="space-y-6">
-                    <div>
-                      <Label htmlFor="age-group">Age Group</Label>
-                      <Select
-                        value={userData.age}
-                        onValueChange={(value) =>
-                          setUserData((prev) => ({ ...prev, age: value }))
-                        }
-                      >
-                        <SelectTrigger id="age-group" className="w-full mt-2">
-                          <SelectValue placeholder="Select your age group" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="under18">Under 18</SelectItem>
-                          <SelectItem value="18-30">18-30</SelectItem>
-                          <SelectItem value="31-45">31-45</SelectItem>
-                          <SelectItem value="46-60">46-60</SelectItem>
-                          <SelectItem value="over60">Over 60</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="gender">Gender</Label>
-                      <RadioGroup
-                        value={userData.gender}
-                        onValueChange={(value: any) =>
-                          setUserData((prev) => ({ ...prev, gender: value }))
-                        }
-                        className="flex space-x-4 mt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="male" id="male" />
-                          <Label htmlFor="male">Male</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="female" id="female" />
-                          <Label htmlFor="female">Female</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="other" id="other" />
-                          <Label htmlFor="other">Other</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
+      <main className="flex-grow container mx-auto px-4 py-12">
+        <motion.div
+          className="max-w-4xl mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="w-full max-w-4xl mx-auto border shadow-sm overflow-hidden">
+            <CardHeader className="bg-blue-600 dark:bg-blue-700 p-6">
+              <CardTitle className="text-2xl font-bold text-white">
+                HepaPredict
+              </CardTitle>
+              <CardDescription className="text-blue-100">
+                {!showResults
+                  ? "Complete the assessment to get your results"
+                  : "Your prediction results"}
+              </CardDescription>
+              {!showResults && (
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs text-blue-100 mb-2">
+                    <span>Basic Info</span>
+                    <span>Symptoms</span>
+                    <span>Risk Factors</span>
                   </div>
-                </TabsContent>
-
-                <TabsContent value="symptoms">
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="jaundice"
-                            checked={userData.symptoms.jaundice}
-                            onCheckedChange={(checked: boolean) =>
-                              handleSymptomChange("jaundice", checked === true)
-                            }
-                          />
-                          <Label htmlFor="jaundice">
-                            Yellowing of skin/eyes (Jaundice)
-                          </Label>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="darkUrine"
-                            checked={userData.symptoms.darkUrine}
-                            onCheckedChange={(checked: boolean) =>
-                              handleSymptomChange("darkUrine", checked === true)
-                            }
-                          />
-                          <Label htmlFor="darkUrine">Dark Urine</Label>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="fever"
-                            checked={userData.symptoms.fever}
-                            onCheckedChange={(checked: boolean) =>
-                              handleSymptomChange("fever", checked === true)
-                            }
-                          />
-                          <Label htmlFor="fever">Fever</Label>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="jointPain"
-                            checked={userData.symptoms.jointPain}
-                            onCheckedChange={(checked: boolean) =>
-                              handleSymptomChange("jointPain", checked === true)
-                            }
-                          />
-                          <Label htmlFor="jointPain">Joint Pain</Label>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="nausea"
-                            checked={userData.symptoms.nausea}
-                            onCheckedChange={(checked: boolean) =>
-                              handleSymptomChange("nausea", checked === true)
-                            }
-                          />
-                          <Label htmlFor="nausea">Nausea</Label>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="appetite"
-                            checked={userData.symptoms.appetite}
-                            onCheckedChange={(checked: boolean) =>
-                              handleSymptomChange("appetite", checked === true)
-                            }
-                          />
-                          <Label htmlFor="appetite">Loss of Appetite</Label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6 mt-6">
-                      <div>
-                        <div className="flex justify-between">
-                          <Label>Abdominal Pain Level</Label>
-                          <span className="text-sm text-muted-foreground">
-                            {userData.symptoms.abdominalPain / 10}/10
-                          </span>
-                        </div>
-                        <Slider
-                          value={[userData.symptoms.abdominalPain]}
-                          min={0}
-                          max={100}
-                          step={10}
-                          onValueChange={(value) =>
-                            handleSymptomChange("abdominalPain", value[0])
-                          }
-                          className="mt-2"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between">
-                          <Label>Fatigue Level</Label>
-                          <span className="text-sm text-muted-foreground">
-                            {userData.symptoms.fatigue / 10}/10
-                          </span>
-                        </div>
-                        <Slider
-                          value={[userData.symptoms.fatigue]}
-                          min={0}
-                          max={100}
-                          step={10}
-                          onValueChange={(value) =>
-                            handleSymptomChange("fatigue", value[0])
-                          }
-                          className="mt-2"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="risk">
-                  <div className="space-y-4">
-                    <p className="text-muted-foreground mb-4">
-                      Select any risk factors that apply to you:
-                    </p>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="recentTravel"
-                          checked={userData.riskFactors.includes("recentTravel")}
-                          onCheckedChange={() =>
-                            handleRiskFactorToggle("recentTravel")
-                          }
-                        />
-                        <Label htmlFor="recentTravel">
-                          Recent Travel to High-Risk Areas
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="bloodTransfusion"
-                          checked={userData.riskFactors.includes(
-                            "bloodTransfusion"
-                          )}
-                          onCheckedChange={() =>
-                            handleRiskFactorToggle("bloodTransfusion")
-                          }
-                        />
-                        <Label htmlFor="bloodTransfusion">
-                          History of Blood Transfusion
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="unsafeInjection"
-                          checked={userData.riskFactors.includes("unsafeInjection")}
-                          onCheckedChange={() =>
-                            handleRiskFactorToggle("unsafeInjection")
-                          }
-                        />
-                        <Label htmlFor="unsafeInjection">
-                          History of Unsafe Injection Practices
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="contactWithInfected"
-                          checked={userData.riskFactors.includes(
-                            "contactWithInfected"
-                          )}
-                          onCheckedChange={() =>
-                            handleRiskFactorToggle("contactWithInfected")
-                          }
-                        />
-                        <Label htmlFor="contactWithInfected">
-                          Contact with Infected Person
-                        </Label>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="selection">
-                  <div className="space-y-6">
-                    <div>
-                      <Label
-                        htmlFor="hepatitis-type"
-                        className="text-lg font-medium"
-                      >
-                        Select Hepatitis Type
-                      </Label>
-                      <p className="text-muted-foreground mb-4">
-                        Based on your knowledge or previous diagnosis, which type of
-                        hepatitis do you think you might have?
-                      </p>
-
-                      <RadioGroup
-                        value={userData.hepatitisType}
-                        onValueChange={(value: any) =>
-                          setUserData((prev) => ({ ...prev, hepatitisType: value }))
-                        }
-                        className="space-y-4 mt-2"
-                      >
-                        <div className="flex items-start space-x-3">
-                          <RadioGroupItem
-                            value="hepatitisB"
-                            id="hepatitisB"
-                            className="mt-1"
-                          />
-                          <div>
-                            <Label htmlFor="hepatitisB" className="font-medium">
-                              Hepatitis B
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Transmitted through blood, semen, and other body
-                              fluids. Can cause both acute and chronic infection.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-start space-x-3">
-                          <RadioGroupItem
-                            value="hepatitisC"
-                            id="hepatitisC"
-                            className="mt-1"
-                          />
-                          <div>
-                            <Label htmlFor="hepatitisC" className="font-medium">
-                              Hepatitis C
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Primarily spread through contact with infected blood.
-                              Often becomes chronic.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-start space-x-3">
-                          <RadioGroupItem
-                            value="unlikely"
-                            id="unlikely"
-                            className="mt-1"
-                          />
-                          <div>
-                            <Label htmlFor="unlikely" className="font-medium">
-                              No Hepatitis / Not Sure
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              I don't think I have hepatitis or I'm not sure.
-                            </p>
-                          </div>
-                        </div>
-                      </RadioGroup>
-                    </div>
-
-                    <div className="bg-muted p-4 rounded-md mt-6">
-                      <p className="text-sm">
-                        <strong>Note:</strong> This selection is not a diagnosis.
-                        For accurate diagnosis, please consult with a healthcare
-                        professional.
-                      </p>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            ) : (
-              <div id="prediction-results" className="animate-fade-in">
-                <div className="mb-6 p-4 rounded-lg bg-muted">
-                  <div className="text-center">
-                    <h3 className="text-xl font-bold mb-2">Prediction Results</h3>
-                    
-                    {predictionResult?.prediction.predictions.map((pred, index) => {
-                      console.log('Rendering prediction:', pred);
-                      return (
-                        <div key={index} className="mt-4">
-                          <Badge className="mb-4 bg-primary">
-                            {pred.predicted_class}
-                          </Badge>
-                          
-                          <div className="mt-4 space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span>Probability of Hepatitis A:</span>
-                              <span className="font-semibold">
-                                {(pred["probability_Hepatitis A"] * 100).toFixed(1)}%
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span>Probability of Hepatitis C:</span>
-                              <span className="font-semibold">
-                                {(pred["probability_Hepatitis C"] * 100).toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    <div className="text-left mt-6">
-                      <p className="mb-4">
-                        <strong>Important Note:</strong> This prediction is based on the symptoms and risk factors you provided. 
-                        It is not a medical diagnosis. Please consult with a healthcare professional for proper medical advice.
-                      </p>
-                      
-                      <div className="bg-primary/10 p-4 rounded-lg">
-                        <h4 className="font-semibold mb-2">Next Steps:</h4>
-                        <ul className="space-y-2">
-                          <li className="flex items-start">
-                            <span className="mr-2 text-primary">✓</span>
-                            <span>Schedule an appointment with your healthcare provider</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="mr-2 text-primary">✓</span>
-                            <span>Share these results with your doctor</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="mr-2 text-primary">✓</span>
-                            <span>Get proper medical testing and diagnosis</span>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
+                  <Progress
+                    value={getProgressPercentage()}
+                    className="h-2 bg-blue-500/30"
+                  />
                 </div>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            {!showResults ? (
-              <>
-                {activeTab !== "basic" && (
-                  <Button variant="outline" onClick={prevTab}>
-                    Previous
-                  </Button>
-                )}
-                {activeTab === "risk" ? (
-                  <Button onClick={handleSubmit} disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                        Processing...
-                      </>
-                    ) : (
-                      "Submit"
+              )}
+            </CardHeader>
+            <CardContent className="bg-white dark:bg-slate-900 p-6">
+              <AnimatePresence mode="wait">
+                {!showResults ? (
+                  <motion.div
+                    key="form"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Tabs
+                      value={activeTab}
+                      onValueChange={setActiveTab}
+                      className="w-full"
+                    >
+                      <TabsList className="grid grid-cols-3 mb-8 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                        <TabsTrigger
+                          value="basic"
+                          className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-700"
+                        >
+                          Basic Info
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="symptoms"
+                          className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-700"
+                        >
+                          Symptoms
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="risk"
+                          className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-700"
+                        >
+                          Risk Factors
+                        </TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="basic">
+                        <motion.div
+                          className="space-y-6"
+                          initial="hidden"
+                          animate="visible"
+                          variants={containerVariants}
+                        >
+                          <motion.div variants={itemVariants}>
+                            <Label
+                              htmlFor="age-group"
+                              className="text-slate-900 dark:text-white"
+                            >
+                              Age Group
+                            </Label>
+                            <Select
+                              value={userData.age}
+                              onValueChange={(value) =>
+                                setUserData((prev) => ({ ...prev, age: value }))
+                              }
+                            >
+                              <SelectTrigger
+                                id="age-group"
+                                className="w-full mt-2 border-slate-200 dark:border-slate-700"
+                              >
+                                <SelectValue placeholder="Select your age group" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="under18">
+                                  Under 18
+                                </SelectItem>
+                                <SelectItem value="18-30">18-30</SelectItem>
+                                <SelectItem value="31-45">31-45</SelectItem>
+                                <SelectItem value="46-60">46-60</SelectItem>
+                                <SelectItem value="over60">Over 60</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </motion.div>
+
+                          <motion.div variants={itemVariants}>
+                            <Label
+                              htmlFor="gender"
+                              className="text-slate-900 dark:text-white"
+                            >
+                              Gender
+                            </Label>
+                            <RadioGroup
+                              value={userData.gender}
+                              onValueChange={(value: any) =>
+                                setUserData((prev) => ({
+                                  ...prev,
+                                  gender: value,
+                                }))
+                              }
+                              className="flex flex-col sm:flex-row gap-4 mt-2"
+                            >
+                              <div className="flex items-center space-x-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <RadioGroupItem value="male" id="male" />
+                                <Label
+                                  htmlFor="male"
+                                  className="cursor-pointer text-slate-900 dark:text-white"
+                                >
+                                  Male
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <RadioGroupItem value="female" id="female" />
+                                <Label
+                                  htmlFor="female"
+                                  className="cursor-pointer text-slate-900 dark:text-white"
+                                >
+                                  Female
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <RadioGroupItem value="other" id="other" />
+                                <Label
+                                  htmlFor="other"
+                                  className="cursor-pointer text-slate-900 dark:text-white"
+                                >
+                                  Other
+                                </Label>
+                              </div>
+                            </RadioGroup>
+                          </motion.div>
+                        </motion.div>
+                      </TabsContent>
+
+                      <TabsContent value="symptoms">
+                        <motion.div
+                          className="space-y-6"
+                          initial="hidden"
+                          animate="visible"
+                          variants={containerVariants}
+                        >
+                          <motion.div variants={itemVariants}>
+                            <div className="flex items-center gap-2 mb-6">
+                              <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                                <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                              </div>
+                              <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+                                Select Your Symptoms
+                              </h3>
+                            </div>
+                          </motion.div>
+
+                          <motion.div variants={itemVariants}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-4">
+                                {[
+                                  {
+                                    id: "jaundice",
+                                    label: "Yellowing of skin/eyes (Jaundice)",
+                                  },
+                                  { id: "darkUrine", label: "Dark Urine" },
+                                  { id: "fever", label: "Fever" },
+                                  { id: "jointPain", label: "Joint Pain" },
+                                ].map((symptom) => (
+                                  <div
+                                    key={symptom.id}
+                                    className="flex items-center space-x-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                  >
+                                    <Checkbox
+                                      id={symptom.id}
+                                      checked={
+                                        userData.symptoms[
+                                          symptom.id as keyof typeof userData.symptoms
+                                        ] as boolean
+                                      }
+                                      onCheckedChange={(checked: boolean) =>
+                                        handleSymptomChange(
+                                          symptom.id,
+                                          checked === true
+                                        )
+                                      }
+                                      className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                                    />
+                                    <Label
+                                      htmlFor={symptom.id}
+                                      className="flex-1 cursor-pointer text-slate-900 dark:text-white"
+                                    >
+                                      {symptom.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="space-y-4">
+                                {[
+                                  { id: "nausea", label: "Nausea" },
+                                  { id: "appetite", label: "Loss of Appetite" },
+                                ].map((symptom) => (
+                                  <div
+                                    key={symptom.id}
+                                    className="flex items-center space-x-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                  >
+                                    <Checkbox
+                                      id={symptom.id}
+                                      checked={
+                                        userData.symptoms[
+                                          symptom.id as keyof typeof userData.symptoms
+                                        ] as boolean
+                                      }
+                                      onCheckedChange={(checked: boolean) =>
+                                        handleSymptomChange(
+                                          symptom.id,
+                                          checked === true
+                                        )
+                                      }
+                                      className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                                    />
+                                    <Label
+                                      htmlFor={symptom.id}
+                                      className="flex-1 cursor-pointer text-slate-900 dark:text-white"
+                                    >
+                                      {symptom.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </motion.div>
+
+                          <motion.div
+                            className="space-y-6 mt-8"
+                            variants={itemVariants}
+                          >
+                            <div>
+                              <div className="flex justify-between">
+                                <Label className="text-slate-900 dark:text-white">
+                                  Abdominal Pain Level
+                                </Label>
+                                <span className="text-sm font-medium px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                                  {userData.symptoms.abdominalPain / 10}/10
+                                </span>
+                              </div>
+                              <Slider
+                                value={[userData.symptoms.abdominalPain]}
+                                min={0}
+                                max={100}
+                                step={10}
+                                onValueChange={(value) =>
+                                  handleSymptomChange("abdominalPain", value[0])
+                                }
+                                className="mt-2"
+                              />
+                              <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 px-1 mt-1">
+                                <span>None</span>
+                                <span>Mild</span>
+                                <span>Moderate</span>
+                                <span>Severe</span>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="flex justify-between">
+                                <Label className="text-slate-900 dark:text-white">
+                                  Fatigue Level
+                                </Label>
+                                <span className="text-sm font-medium px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                                  {userData.symptoms.fatigue / 10}/10
+                                </span>
+                              </div>
+                              <Slider
+                                value={[userData.symptoms.fatigue]}
+                                min={0}
+                                max={100}
+                                step={10}
+                                onValueChange={(value) =>
+                                  handleSymptomChange("fatigue", value[0])
+                                }
+                                className="mt-2"
+                              />
+                              <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 px-1 mt-1">
+                                <span>None</span>
+                                <span>Mild</span>
+                                <span>Moderate</span>
+                                <span>Severe</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        </motion.div>
+                      </TabsContent>
+
+                      <TabsContent value="risk">
+                        <motion.div
+                          className="space-y-6"
+                          initial="hidden"
+                          animate="visible"
+                          variants={containerVariants}
+                        >
+                          <motion.div variants={itemVariants}>
+                            <div className="flex items-center gap-2 mb-6">
+                              <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                                <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                              </div>
+                              <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+                                Risk Factors
+                              </h3>
+                            </div>
+                            <p className="text-slate-600 dark:text-slate-300 mb-6">
+                              Select any risk factors that apply to you:
+                            </p>
+                          </motion.div>
+
+                          <motion.div
+                            className="space-y-4"
+                            variants={itemVariants}
+                          >
+                            {[
+                              {
+                                id: "recentTravel",
+                                label: "Recent Travel to High-Risk Areas",
+                                description:
+                                  "Travel to regions with known hepatitis outbreaks in the past 6 months",
+                              },
+                              {
+                                id: "bloodTransfusion",
+                                label: "History of Blood Transfusion",
+                                description:
+                                  "Received blood products before comprehensive screening was implemented",
+                              },
+                              {
+                                id: "unsafeInjection",
+                                label: "History of Unsafe Injection Practices",
+                                description:
+                                  "Shared needles or received injections with potentially unsterilized equipment",
+                              },
+                              {
+                                id: "contactWithInfected",
+                                label: "Contact with Infected Person",
+                                description:
+                                  "Close contact with someone diagnosed with hepatitis",
+                              },
+                            ].map((factor) => (
+                              <div
+                                key={factor.id}
+                                className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <Checkbox
+                                    id={factor.id}
+                                    checked={userData.riskFactors.includes(
+                                      factor.id
+                                    )}
+                                    onCheckedChange={() =>
+                                      handleRiskFactorToggle(factor.id)
+                                    }
+                                    className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                                  />
+                                  <div className="flex-1">
+                                    <Label
+                                      htmlFor={factor.id}
+                                      className="font-medium cursor-pointer text-slate-900 dark:text-white"
+                                    >
+                                      {factor.label}
+                                    </Label>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                      {factor.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </motion.div>
+
+                          <motion.div
+                            className="p-6 mt-6 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                            variants={itemVariants}
+                          >
+                            <h4 className="font-semibold mb-3 text-slate-900 dark:text-white flex items-center gap-2">
+                              <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                              Important Note:
+                            </h4>
+                            <p className="text-slate-700 dark:text-slate-300">
+                              This assessment is not a medical diagnosis. It's
+                              based on the information you provided and is
+                              intended to guide your next steps. For accurate
+                              diagnosis, please consult with a healthcare
+                              professional.
+                            </p>
+                          </motion.div>
+                        </motion.div>
+                      </TabsContent>
+                    </Tabs>
+
+                    {loading && (
+                      <motion.div
+                        className="mt-6 p-4 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <p className="mb-2 text-sm font-medium text-slate-900 dark:text-white flex justify-between">
+                          Processing
+                          <span>{Math.round(progress)}%</span>
+                        </p>
+                        <Progress value={progress} className="h-2" />
+                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                          {progress < 100
+                            ? "Processing data and analyzing symptoms..."
+                            : "Processing complete!"}
+                        </p>
+                      </motion.div>
                     )}
-                  </Button>
+                  </motion.div>
                 ) : (
-                  <Button onClick={nextTab}>Next</Button>
+                  <motion.div
+                    id="prediction-results"
+                    key="results"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <div className="mb-6 p-6 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <div className="text-center">
+                        <motion.div
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 200,
+                            damping: 15,
+                          }}
+                        >
+                          <h3 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">
+                            Prediction Results
+                          </h3>
+                        </motion.div>
+
+                        {predictionResult?.prediction.predictions.map(
+                          (pred, index) => (
+                            <motion.div
+                              key={index}
+                              className="mt-6"
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.3 + index * 0.2 }}
+                            >
+                              <Badge className="mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-lg">
+                                {pred.predicted_class}
+                              </Badge>
+
+                              <motion.div
+                                className="mt-6 space-y-4 bg-slate-50 dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-700"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 + index * 0.2 }}
+                              >
+                                <div>
+                                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
+                                    Probability of Hepatitis A
+                                  </p>
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4">
+                                      <div
+                                        className="h-4 rounded-full bg-blue-600"
+                                        style={{
+                                          width: `${
+                                            pred["probability_Hepatitis A"] *
+                                            100
+                                          }%`,
+                                        }}
+                                      ></div>
+                                    </div>
+                                    <span className="font-medium text-blue-600 dark:text-blue-400 min-w-[80px] text-right">
+                                      {(
+                                        pred["probability_Hepatitis A"] * 100
+                                      ).toFixed(1)}
+                                      %
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
+                                    Probability of Hepatitis C
+                                  </p>
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4">
+                                      <div
+                                        className="h-4 rounded-full bg-blue-600"
+                                        style={{
+                                          width: `${
+                                            pred["probability_Hepatitis C"] *
+                                            100
+                                          }%`,
+                                        }}
+                                      ></div>
+                                    </div>
+                                    <span className="font-medium text-blue-600 dark:text-blue-400 min-w-[80px] text-right">
+                                      {(
+                                        pred["probability_Hepatitis C"] * 100
+                                      ).toFixed(1)}
+                                      %
+                                    </span>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            </motion.div>
+                          )
+                        )}
+
+                        <motion.div
+                          className="text-left mt-8"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.7 }}
+                        >
+                          <p className="mb-6 text-slate-700 dark:text-slate-300">
+                            <strong className="text-slate-900 dark:text-white">
+                              Important Note:
+                            </strong>{" "}
+                            This prediction is based on the symptoms and risk
+                            factors you provided. It is not a medical diagnosis.
+                            Please consult with a healthcare professional for
+                            proper medical advice.
+                          </p>
+
+                          <motion.div
+                            className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.8 }}
+                          >
+                            <h4 className="font-semibold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
+                              <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                              Next Steps:
+                            </h4>
+                            <ul className="space-y-3">
+                              {[
+                                "Schedule an appointment with your healthcare provider",
+                                "Share these results with your doctor",
+                                "Get proper medical testing and diagnosis",
+                              ].map((step, i) => (
+                                <motion.li
+                                  key={i}
+                                  className="flex items-start p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                  initial={{ x: -10, opacity: 0 }}
+                                  animate={{ x: 0, opacity: 1 }}
+                                  transition={{ delay: 0.9 + i * 0.1 }}
+                                >
+                                  <CheckCircle2 className="h-5 w-5 mr-3 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                                  <span className="text-slate-700 dark:text-slate-300">
+                                    {step}
+                                  </span>
+                                </motion.li>
+                              ))}
+                            </ul>
+                          </motion.div>
+                        </motion.div>
+                      </div>
+                    </div>
+                  </motion.div>
                 )}
-                {activeTab === "basic" && <div></div>}
-              </>
-            ) : (
-              <>
-                <Button variant="outline" onClick={resetForm}>
-                  Start Over
-                </Button>
-                <Button onClick={downloadResults}>
-                  <Download className="h-4 w-4 mr-2" /> Download Results
-                </Button>
-              </>
-            )}
-          </CardFooter>
-        </Card>
+              </AnimatePresence>
+            </CardContent>
+            <CardFooter className="flex justify-between bg-blue-600 dark:bg-blue-700 p-6">
+              {!showResults ? (
+                <>
+                  {activeTab !== "basic" && (
+                    <Button
+                      variant="outline"
+                      onClick={prevTab}
+                      className="border-blue-500 bg-transparent text-white hover:bg-blue-500/20"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                    </Button>
+                  )}
+                  {activeTab === "risk" ? (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={loading}
+                      className="bg-white text-blue-600 hover:bg-blue-50"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        "Submit"
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={nextTab}
+                      className="bg-white text-blue-600 hover:bg-blue-50"
+                    >
+                      Next <ChevronRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  )}
+                  {activeTab === "basic" && <div></div>}
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={resetForm}
+                    className="border-blue-500 bg-transparent text-white hover:bg-blue-500/20"
+                  >
+                    Start Over
+                  </Button>
+                  <Button
+                    onClick={downloadResults}
+                    className="bg-white text-blue-600 hover:bg-blue-50"
+                  >
+                    <Download className="h-4 w-4 mr-2" /> Download Results
+                  </Button>
+                </>
+              )}
+            </CardFooter>
+          </Card>
+        </motion.div>
       </main>
       <Footer />
     </div>
@@ -742,18 +1033,20 @@ function formatGender(gender: string): string {
 function formatHepatitisType(type: string | null | undefined): string {
   if (!type) return "Not specified";
   switch (type) {
-    case "A":
+    case "hepatitisA":
       return "Hepatitis A";
-    case "B":
+    case "hepatitisB":
       return "Hepatitis B";
-    case "C":
+    case "hepatitisC":
       return "Hepatitis C";
-    case "D":
+    case "hepatitisD":
       return "Hepatitis D";
-    case "E":
+    case "hepatitisE":
       return "Hepatitis E";
+    case "unlikely":
+      return "No Hepatitis / Not Sure";
     default:
-      return "Unknown Type";
+      return type;
   }
 }
 

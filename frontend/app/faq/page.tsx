@@ -1,140 +1,210 @@
-"use client"
-import Header from "../common/header"
-import Footer from "../common/footer"
-import { HelpCircle } from "lucide-react"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+"use client";
+import Header from "../common/header";
+import Footer from "../common/footer";
+import { HelpCircle, Sparkles, Shield, Activity, Brain } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { motion } from "framer-motion";
 
 const FaqPage = () => {
   const faqCategories = [
     {
-      category: "Ku saabsan Cagaarshowga",
+      category: "Ku Saabsan Cagaarshowga",
+      icon: <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       questions: [
         {
-          question: "Waa maxay cagaarshowga?",
+          question: "Maxay tahay Cagaarshowga?",
           answer:
-            "Cagaarshowgu waa bararka beerka. Waxaa sababi kara fayruusyo, khamri, daawooyin, ama waxyaabo kale oo sunta ah. Noocyada ugu badan waa cagaarshowga fayruuska (A, B, C, D, iyo E), kuwaas oo ay sababaan fayruusyo kala duwan oo saameynaya beerka.",
+            "Cagaarshowgu waa xanuun beerka ku dhaca kaasoo keena bararka beerka. Waxa keena fayruusyo kala duwan, khamriga xad-dhaafka ah, daawooyin, ama waxyaabo kale oo sun ah. Noocyada ugu caansan waa cagaarshowga fayruuska ah (A, B, C, D, iyo E), kuwaas oo midkasta leeyahay sababihiisa gaarka ah.",
         },
         {
-          question: "Maxaa farqi u dhexeeya cagaarshowga A, B, iyo C?",
+          question: "Sidee ayey u kala duwan yihiin noocyada Cagaarshowga?",
           answer:
-            "Cagaarshowga A waxaa caadi ahaan lagu gudbiyaa cunto ama biyo wasakhaysan waxayna keentaa infekshan xad. Cagaarshowga B waxaa lagu gudbiyaa dhiig iyo dheecaano jirka waxayna noqon kartaa mid xad ah ama joogto ah. Cagaarshowga C waxaa inta badan lagu gudbiyaa xiriirka dhiigga waxayna inta badan noqotaa mid joogto ah, taas oo laga yaabo inay keento dhaawac daran oo beerka ah muddo ka dib.",
+            "Cagaarshowga A: Ku faafa cuntada ama biyaha wasakhaysan, waa mid ku meel gaar ah. Cagaarshowga B: Ku faafa dhiigga iyo dheecaannada kale, wuxuu noqon karaa mid ku meel gaar ah ama joogto ah. Cagaarshowga C: Inta badan ku faafa dhiigga, badanaa waa mid joogto ah, wuxuuna keeni karaa dhaawac beerka ah haddii aan la daaweyn.",
         },
         {
-          question: "Miyaa la daweyn karaa cagaarshowga?",
+          question: "Ma la daaweyn karaa Cagaarshowga?",
           answer:
-            "Waxay ku xiran tahay nooca. Cagaarshowga A waxaa caadi ahaan iskii u bogsadaa. Cagaarshowga B waxaa lagu xakameyn karaa dawo haddii ay joogto tahay, in kasta oo aysan jirin daaweyn buuxda. Cagaarshowga C hadda waa la daweyn karaa inta badan kiisaska daawooyin lidka ah fayruuska oo toos ah oo la qaato 8-12 toddobaad.",
+            "Haa, laakiin daawadu way ku xiran tahay nooca. Cagaarshowga A wuu is-daaweeyaa. Cagaarshowga B waa la xakameyn karaa daawooyin, inkastoo aan la bogsiin karin. Cagaarshowga C hadda si buuxda ayaa loo daaweyn karaa inta badan kiisaska, waxaana la isticmaalaa daawooyin casri ah oo la qaato 8-12 toddobaad.",
         },
       ],
     },
     {
       category: "Astaamaha & Baaritaanka",
+      icon: <Activity className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       questions: [
         {
-          question: "Waa maxay astaamaha caadiga ah ee cagaarshowga?",
+          question: "Waa maxay astaamaha ugu caansan ee Cagaarshowga?",
           answer:
-            "Astaamaha caadiga ah waxaa ka mid ah daal, jaundice (jaalloonaanta maqaarka iyo indhaha), xanuunka caloosha, luminta rabitaanka, lalabbo, matag, kaadi madow, iyo saxaro midab cad. Si kastaba ha ahaatee, dad badan oo qaba cagaarshowga, gaar ahaan marxaladaha hore, ma yeelan karaan wax astaamo ah.",
+            "Astaamaha ugu muhiimsan waxaa ka mid ah: daal joogto ah, jaalloonaanta maqaarka iyo indhaha, xanuun caloosha ah, rabitaan la'aanta cuntada, lallabo iyo matag, kaadi madow, iyo saxaro midabkeedu cad yahay. Waa muhiim in la ogaado in qaar ka mid ah dadka qaba cagaarshowga aysan muujin astaamo bilowga xanuunka.",
         },
         {
-          question: "Sidee loo ogaadaa cagaarshowga?",
+          question: "Sidee loo ogaadaa Cagaarshowga?",
           answer:
-            "Baaritaanka caadi ahaan waxaa ka mid ah baaritaannada dhiigga si loo hubiyo shaqada beerka oo loo ogaado unugyada difaaca jirka ama antigen-ka fayruuska. Baaritaanno dheeraad ah waxaa ka mid noqon kara ultrasound, fibroscan, ama biopsy beerka si loo qiimeeyo dhaawaca beerka.",
+            "Baaritaanka waxaa ka mid ah: baaritaanka dhiigga si loo hubiyo shaqada beerka, baaritaanka unugyada difaaca jirka, iyo baaritaanka antigen-ka fayruuska. Baaritaanno dheeraad ah sida ultrasound-ka beerka, fibroscan, ama biopsy ayaa loo isticmaali karaa si loo qiimeeyo xaaladda beerka.",
         },
         {
-          question: "Intee in le'eg ayuu sax yahay hubiyaha astaamaha HepaPredict?",
+          question: "Sidee u shaqeeyaa nidaamka baaritaanka HepaPredict?",
           answer:
-            "HepaPredict wuxuu isticmaalaa algorithm-ka barashada mashiinka ee lagu tababaray xogta caafimaadka si loo bixiyo tilmaan ku saabsan cagaarshowga suurtagalka ah oo ku saleysan astaamaha. In kasta oo ay noqon karto tallaabo hore oo waxtar leh, haddana ma aha qalab baaritaan mana bedeli karto talo caafimaad oo xirfad leh iyo la-tashi bixiyeyaasha daryeelka caafimaadka.",
+            "HepaPredict wuxuu adeegsadaa habab casri ah oo ku salaysan barashada mashiinka (AI) si loo qiimeeyo astaamahaaga. Nidaamkan wuxuu ku saleeyaa natiijooyinkiisa xog ballaaran oo caafimaad, hase yeeshee waa in la fahmo in uusan ahayn beddelka baaritaanka caafimaad ee xirfadlayaasha.",
         },
       ],
     },
     {
-      category: "Ka hortagga & Daaweynta",
+      category: "Ka Hortagga & Daaweynta",
+      icon: <Sparkles className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       questions: [
         {
-          question: "Sideen uga hortagi karaa inaan qaado cagaarshowga?",
+          question: "Sidee looga hortagi karaa Cagaarshowga?",
           answer:
-            "Habka ka hortagga waxay ku kala duwan yihiin nooca: Cagaarshowga A iyo E, ku dhaqan nadaafad wanaagsan oo ka fogow cunto/biyo wasakhaysan. Cagaarshowga B, tallaalka ayaa la heli karaa waxaana uu waxtar leeyahay. Cagaarshowga C, ka fogow wadaagista cirbadaha ama alaabta shakhsi ahaaneed ee laga yaabo inay xiriir la yeeshaan dhiigga. Dhammaan noocyada, ka fogow isticmaalka khamriga xad-dhaafka ah si aad u ilaaliso beerkaaga.",
+            "Ka hortagga wuxuu ku xiran yahay nooca: Cagaarshowga A & E: Ku dhaqan nadaafad wanaagsan, iska ilaali cunto iyo biyo wasakhaysan. Cagaarshowga B: Qaado tallaalka. Cagaarshowga C: Ka fogow wadaagista waxyaabaha gaarka ah sida cirbadaha. Dhammaan noocyada: Ka fogow khamriga xad-dhaafka ah, raac nidaam cunto caafimaad leh.",
         },
         {
-          question: "Ma jiraan tallaalada cagaarshowga?",
+          question: "Ma jiraan tallaalada Cagaarshowga?",
           answer:
-            "Haa, waxaa jira tallaalada ammaan ah oo wax ku ool ah ee cagaarshowga A iyo B, laakiin ma jiraan kuwa cagaarshowga C, D, ama E. Tallaalka cagaarshowga B waxaa si joogto ah loogu taliyaa dhammaan dhallaanka iyo carruurta aan la tallaalin iyo dadka waaweyn ee halista ku jira.",
+            "Haa, waxaa jira tallaalada ammaan ah ee Cagaarshowga A iyo B. Tallaalka Cagaarshowga B waxaa lagu taliyaa in la siiyo dhammaan carruurta iyo dadka waaweyn ee halista ku jira. Weli ma jiraan tallaalada Cagaarshowga C, D, ama E, laakiin cilmi-baarisyo ayaa socda.",
         },
         {
-          question: "Waa maxay daaweynta la heli karo ee cagaarshowga?",
+          question:
+            "Maxay tahay habka ugu wanaagsan ee loo daaweeyo Cagaarshowga?",
           answer:
-            "Daaweynta waxay ku xiran tahay nooca iyo darnaan. Cagaarshowga xad ah inta badan waxay u baahan tahay nasasho iyo kormeer. Cagaarshowga joogtada ah ee B waxay u baahan kartaa daawooyin lidka ah fayruuska. Cagaarshowga C waxaa lagu daweeyaa daawooyin lidka ah fayruuska oo toos ah oo leh heerarka bogsashada aad u sarreeya. Daaweynta waa in had iyo jeer ay hagaan xirfadlayaasha daryeelka caafimaadka.",
+            "Daaweyntu waxay ku xiran tahay nooca iyo darnaanta xanuunka. Cagaarshowga xad-jirka ah wuxuu u baahan yahay nasasho iyo la-socod caafimaad. Cagaarshowga joogtada ah wuxuu u baahan yahay daaweyn dheer iyo daawooyin gaar ah. Waa muhiim in la raaco tilmaamaha dhakhtarka oo si joogto ah loo booqdo xarunta caafimaadka.",
         },
       ],
     },
     {
       category: "Isticmaalka HepaPredict",
+      icon: <Brain className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       questions: [
         {
-          question: "Sidee u shaqeeyaa qalabka HepaPredict?",
+          question: "Sidee u shaqeeyaa barnaamijka HepaPredict?",
           answer:
-            "HepaPredict wuxuu falanqeeyaa astaamaha aad geliso wuxuuna barbar dhigaa qaababka la xiriira noocyada kala duwan ee cagaarshowga. Isticmaalka algorithm-ka barashada mashiinka ee lagu tababaray xogta caafimaadka, waxay bixisaa qiimayn ku saabsan in astaamahaagu laga yaabo inay tilmaamaan cagaarshowga B, cagaarshowga C, ama midkoodna.",
+            "HepaPredict waa nidaam casri ah oo isticmaala teknoolajiyada AI-ga si loo qiimeeyo astaamahaaga. Wuxuu si taxadar leh u falanqeeyaa xogtaada, isbarbardhigaa xogta caafimaad ee la hubiyay, kadibna wuxuu bixiyaa tilmaamo ku saabsan suurtagalnimada Cagaarshowga.",
         },
         {
-          question: "Xogtayda ma la ilaalinayaa marka aan isticmaalayo HepaPredict?",
+          question:
+            "Ma ammaan baa xogtayda marka aan isticmaalayo HepaPredict?",
           answer:
-            "Haa, waxaan si dhab ah uga xoogaynaa arrimaha la xiriira asturnaanta. Xogta astaamaha ee aad geliso waxaa si ammaan ah loo habeeyaa mana lagu kaydiyo si joogto ah mana la wadaago dhinacyada saddexaad. Ma uruurino macluumaadka aqoonsiga shakhsiga ah iyada oo loo marayo qalabka hubinta astaamaha.",
+            "Haa, waxaan si gaar ah muhiimad u siinaa ilaalinta xogta adeegsadayaasha. Dhammaan xogta la geliyo waa la siriyaa, lama kaydiyo, lamana wadaago cid kale. Barnaamijku ma uruuriyo wax macluumaad shaqsi ah oo lagu aqoonsan karo qofka.",
         },
         {
-          question: "Maxaan sameeyaa ka dib marka aan helo natiijo ka timid HepaPredict?",
+          question:
+            "Maxaan sameeyaa kadib marka aan helo natiijooyinka HepaPredict?",
           answer:
-            "Iyadoo aan loo eegin natiiijada, haddii aad la kulanto astaamo ku welwel geliya, waa inaad la tashataa bixiye daryeel caafimaad si aad u hesho baaritaan iyo baaritaan saxda ah. HepaPredict waa qalab waxbarasho oo kor u qaada wacyiga, ma aha qalab baaritaan. Baaritaan saxda ah waxay u baahan tahay baaritaan caafimaad iyo qiimayn xirfad leh.",
+            "Iyadoo aan loo eegin natiijooyinka, haddii aad dareemayso astaamo walaac leh, waa muhiim inaad la tashatid dhakhtar. HepaPredict waa qalab caawiya wacyigelinta, ma aha mid beddela baaritaanka caafimaad. Baaritaan buuxa wuxuu u baahan yahay qiimayn xirfadle caafimaad.",
         },
       ],
     },
-  ]
+  ];
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+      },
+    },
+  };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-white via-blue-50/5 to-white dark:from-slate-950 dark:via-blue-900/5 dark:to-slate-950">
       <Header />
       <main className="flex-grow">
-        <section className="py-16 px-6 bg-gradient-to-b from-hepa-lightTeal/30 to-white">
-          <div className="max-w-6xl mx-auto text-center">
-            <div className="inline-block p-3 bg-white rounded-full mb-6">
-              <HelpCircle className="h-8 w-8 text-hepa-teal" />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-hepa-navy mb-6">Su'aalaha Inta Badan La Isweydiiyo</h1>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-8">
-              Ka hel jawaabaha su'aalaha caadiga ah ee ku saabsan cagaarshowga iyo isticmaalka qalabka HepaPredict.
-            </p>
+        <section className="py-20 px-6 relative overflow-hidden">
+          {/* Background Elements */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-40 -right-20 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
           </div>
+
+          <motion.div
+            className="max-w-6xl mx-auto text-center relative z-10"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 mb-8">
+              <HelpCircle className="h-4 w-4" />
+              <span className="text-sm font-medium">Su'aalaha & Jawaabaha</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
+              Su'aalaha Inta Badan{" "}
+              <span className="text-blue-600 dark:text-blue-400">
+                La Is-weydiiyo
+              </span>
+            </h1>
+            <p className="text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-8">
+              Halkaan ka hel jawaabaha su'aalaha muhiimka ah ee ku saabsan
+              cagaarshowga iyo sida loo isticmaalo nidaamka HepaPredict.
+            </p>
+          </motion.div>
         </section>
 
         <section className="py-16 px-6">
-          <div className="max-w-4xl mx-auto">
+          <motion.div
+            className="max-w-4xl mx-auto"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
             {faqCategories.map((category, categoryIndex) => (
-              <div
+              <motion.div
                 key={categoryIndex}
-                className="mb-12 animate-fade-in"
-                style={{ animationDelay: `${categoryIndex * 0.1}s` }}
+                className="mb-12"
+                variants={itemVariants}
               >
-                <h2 className="text-2xl font-bold text-hepa-navy mb-6">{category.category}</h2>
-                <Accordion type="single" collapsible className="border rounded-lg overflow-hidden">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
+                    {category.icon}
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {category.category}
+                  </h2>
+                </div>
+                <Accordion
+                  type="single"
+                  collapsible
+                  className="border border-blue-200 dark:border-blue-900 rounded-2xl overflow-hidden bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm"
+                >
                   {category.questions.map((faq, faqIndex) => (
                     <AccordionItem
                       key={faqIndex}
                       value={`item-${categoryIndex}-${faqIndex}`}
-                      className="border-b last:border-b-0"
+                      className="border-b border-blue-200 dark:border-blue-900 last:border-b-0"
                     >
-                      <AccordionTrigger className="px-6 py-4 text-left text-hepa-navy hover:text-hepa-teal hover:bg-gray-50 transition-all">
+                      <AccordionTrigger className="px-6 py-4 text-left text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all duration-300">
                         {faq.question}
                       </AccordionTrigger>
-                      <AccordionContent className="px-6 py-4 text-gray-600">{faq.answer}</AccordionContent>
+                      <AccordionContent className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                        {faq.answer}
+                      </AccordionContent>
                     </AccordionItem>
                   ))}
                 </Accordion>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </section>
       </main>
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default FaqPage
+export default FaqPage;

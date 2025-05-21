@@ -45,7 +45,7 @@ export default function DatasetInfo() {
     totalRecords: 1000,
     hepatitisTypes: [
       { type: "Hepatitis A", count: 250 },
-      { type: "Hepatitis B", count: 350 },
+      // { type: "Hepatitis B", count: 350 },
       { type: "Hepatitis C", count: 300 },
       { type: "Autoimmune Hepatitis", count: 100 },
     ],
