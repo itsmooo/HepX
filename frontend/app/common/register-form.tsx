@@ -65,7 +65,8 @@ const RegisterForm = ({ onSwitchToLogin, onClose }: RegisterFormProps) => {
         
         // Close modal and show success message
         onClose()
-        // You can add a toast notification here
+        // Refresh the page to update header
+        window.location.reload()
         console.log("Registration successful:", data)
       } else {
         // Handle error

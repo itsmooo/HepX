@@ -26,13 +26,44 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import LoginForm from "./login-form";
 import RegisterForm from "./register-form";
+import UserProfile from "./user-profile";
 
 const Header = () => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const isMobile = useIsMobile();
+
+  // Check for logged in user on mount and when localStorage changes
+  useEffect(() => {
+    const checkUser = () => {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+          localStorage.removeItem("user");
+          localStorage.removeItem("token");
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    checkUser();
+
+    // Listen for storage changes
+    window.addEventListener("storage", checkUser);
+    window.addEventListener("focus", checkUser);
+
+    return () => {
+      window.removeEventListener("storage", checkUser);
+      window.removeEventListener("focus", checkUser);
+    };
+  }, []);
 
   const navLinks = [
     { href: "/symptoms", label: "Symptoms" },
@@ -40,6 +71,7 @@ const Header = () => {
     { href: "/#education", label: "Education" },
     { href: "/about", label: "Our Team" },
     { href: "/faq", label: "FAQ" },
+    ...(user ? [{ href: "/profile", label: "Profile" }] : []),
   ];
 
   // Handle scroll effect
@@ -92,6 +124,12 @@ const Header = () => {
   const handleSwitchToLogin = () => {
     setShowRegister(false);
     setShowLogin(true);
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setUser(null);
+    setOpen(false);
   };
 
   return (
@@ -187,20 +225,27 @@ const Header = () => {
               >
                 <Bell className="h-4 w-4" />
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleLoginClick}
-                className="border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 hover:scale-105 px-4 py-2 rounded-xl"
-              >
-                Login
-              </Button>
-              <Button 
-                onClick={handleRegisterClick}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 px-6 py-2 rounded-xl"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Get Started
-              </Button>
+              
+              {user ? (
+                <UserProfile user={user} onLogout={handleLogout} />
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleLoginClick}
+                    className="border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 hover:scale-105 px-4 py-2 rounded-xl"
+                  >
+                    Login
+                  </Button>
+                  <Button 
+                    onClick={handleRegisterClick}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 px-6 py-2 rounded-xl"
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Get Started
+                  </Button>
+                </>
+              )}
             </motion.div>
           </div>
 
@@ -270,20 +315,47 @@ const Header = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: 0.5 }}
                     >
-                      <Button 
-                        onClick={handleLoginClick}
-                        variant="outline"
-                        className="w-full border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl py-3 transition-all duration-300"
-                      >
-                        Login
-                      </Button>
-                      <Button 
-                        onClick={handleRegisterClick}
-                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/40 rounded-xl py-3"
-                      >
-                        <Users className="h-4 w-4 mr-2" />
-                        Get Started
-                      </Button>
+                      {user ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-sm font-bold text-white">
+                              {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900 dark:text-white">
+                                {user.firstName} {user.lastName}
+                              </p>
+                              <p className="text-xs text-slate-600 dark:text-slate-400">
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
+                          <Button 
+                            onClick={handleLogout}
+                            variant="outline"
+                            className="w-full border-red-200 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl py-3 transition-all duration-300"
+                          >
+                            Sign Out
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <Button 
+                            onClick={handleLoginClick}
+                            variant="outline"
+                            className="w-full border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl py-3 transition-all duration-300"
+                          >
+                            Login
+                          </Button>
+                          <Button 
+                            onClick={handleRegisterClick}
+                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/40 rounded-xl py-3"
+                          >
+                            <Users className="h-4 w-4 mr-2" />
+                            Get Started
+                          </Button>
+                        </>
+                      )}
                     </motion.div>
                   </div>
                   <DrawerFooter className="border-t border-slate-100 dark:border-slate-800 pt-6">
