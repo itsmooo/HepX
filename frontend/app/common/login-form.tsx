@@ -1,71 +1,77 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff, Mail, Lock, Activity, Sparkles } from "lucide-react"
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Eye, EyeOff, Mail, Lock, Activity, Sparkles } from "lucide-react";
 
 interface LoginFormProps {
-  onSwitchToRegister: () => void
-  onClose: () => void
+  onSwitchToRegister: () => void;
+  onClose: () => void;
 }
-
 const LoginForm = ({ onSwitchToRegister, onClose }: LoginFormProps) => {
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    
+    e.preventDefault();
+    setIsLoading(true);
+
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
-      
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
         // Store token in localStorage
-        localStorage.setItem("token", data.data.token)
-        localStorage.setItem("user", JSON.stringify(data.data))
-        
+        localStorage.setItem("token", data.data.token);
+        localStorage.setItem("user", JSON.stringify(data.data));
+
         // Close modal and show success message
-        onClose()
+        onClose();
         // Refresh the page to update header
-        window.location.reload()
-        console.log("Login successful:", data)
+        window.location.reload();
+        console.log("Login successful:", data);
       } else {
         // Handle error
-        console.error("Login failed:", data.message)
+        console.error("Login failed:", data.message);
         // You can add error handling here
       }
     } catch (error) {
-      console.error("Login error:", error)
+      console.error("Login error:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
-    })
-  }
+    });
+  };
 
   return (
     <motion.div
@@ -99,9 +105,13 @@ const LoginForm = ({ onSwitchToRegister, onClose }: LoginFormProps) => {
                   <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                     Hepa
                   </span>
-                  <span className="text-slate-700 dark:text-slate-300">Predict</span>
+                  <span className="text-slate-700 dark:text-slate-300">
+                    Predict
+                  </span>
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">AI Health Prediction</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  AI Health Prediction
+                </p>
               </div>
             </motion.div>
             <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -118,7 +128,10 @@ const LoginForm = ({ onSwitchToRegister, onClose }: LoginFormProps) => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-medium">
+                <Label
+                  htmlFor="email"
+                  className="text-slate-700 dark:text-slate-300 font-medium"
+                >
                   Email Address
                 </Label>
                 <div className="relative mt-2">
@@ -141,7 +154,10 @@ const LoginForm = ({ onSwitchToRegister, onClose }: LoginFormProps) => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Label htmlFor="password" className="text-slate-700 dark:text-slate-300 font-medium">
+                <Label
+                  htmlFor="password"
+                  className="text-slate-700 dark:text-slate-300 font-medium"
+                >
                   Password
                 </Label>
                 <div className="relative mt-2">
@@ -161,7 +177,11 @@ const LoginForm = ({ onSwitchToRegister, onClose }: LoginFormProps) => {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors duration-200"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </motion.div>
@@ -178,7 +198,10 @@ const LoginForm = ({ onSwitchToRegister, onClose }: LoginFormProps) => {
                     id="remember"
                     className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
                   />
-                  <Label htmlFor="remember" className="text-sm text-slate-600 dark:text-slate-400">
+                  <Label
+                    htmlFor="remember"
+                    className="text-sm text-slate-600 dark:text-slate-400"
+                  >
                     Remember me
                   </Label>
                 </div>
@@ -204,7 +227,11 @@ const LoginForm = ({ onSwitchToRegister, onClose }: LoginFormProps) => {
                     <motion.div
                       className="flex items-center space-x-2"
                       animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
                     >
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
                       <span>Signing in...</span>
@@ -266,8 +293,12 @@ const LoginForm = ({ onSwitchToRegister, onClose }: LoginFormProps) => {
                 variant="outline"
                 className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
               >
-                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
                 </svg>
                 Twitter
               </Button>
@@ -293,7 +324,7 @@ const LoginForm = ({ onSwitchToRegister, onClose }: LoginFormProps) => {
         </Card>
       </motion.div>
     </motion.div>
-  )
-}
+  );
+};
 
-export default LoginForm 
+export default LoginForm;
