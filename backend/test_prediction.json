@@ -1,0 +1,16 @@
+{
+    "age": "30",
+    "gender": "male",
+    "symptoms": {
+        "jaundice": true,
+        "fatigue": 1,
+        "nausea": false,
+        "pain": true,
+        "fever": false,
+        "dark_urine": false,
+        "vomiting": false,
+        "loss_of_appetite": false,
+        "joint_pain": false
+    },
+    "riskFactors": []
+}
