@@ -142,21 +142,21 @@ app.post("/api/predict", async (req, res) => {
 
     // Simple rule-based prediction (fallback when ML model fails)
     const prediction = performSimplePrediction(age, gender, symptoms, riskFactors)
-    
-    // Log prediction
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      userData: { age, gender, symptoms, riskFactors },
+        
+        // Log prediction
+        const logEntry = {
+          timestamp: new Date().toISOString(),
+          userData: { age, gender, symptoms, riskFactors },
       prediction: prediction,
-    }
-    
-    fs.appendFileSync(
-      path.join(__dirname, "prediction_logs.log"),
-      JSON.stringify(logEntry) + "\n"
-    )
+        }
+        
+        fs.appendFileSync(
+          path.join(__dirname, "prediction_logs.log"),
+          JSON.stringify(logEntry) + "\n"
+        )
 
-    res.json({
-      success: true,
+        res.json({
+          success: true,
       prediction: prediction,
     })
   } catch (error) {

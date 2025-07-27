@@ -1,0 +1,4 @@
+case_id,symptoms,expected_type,predicted_type,is_correct
+1,"fatigue, jaundice, nausea, abdominal pain",Hepatitis A,Hepatitis C,False
+2,"fatigue, jaundice, dark-colored urine, abdominal pain, weight loss",Hepatitis C,Hepatitis C,True
+3,"fatigue, jaundice",Hepatitis A,Hepatitis C,False
