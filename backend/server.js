@@ -68,6 +68,40 @@ app.get("/api/status", (req, res) => {
   res.json({ status: "API is running" })
 })
 
+// Health check endpoint for Python service
+app.get("/api/python-status", async (req, res) => {
+  try {
+    const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://localhost:8000'
+    
+    const response = await fetch(`${PYTHON_API_URL}/health`, {
+      method: 'GET',
+      timeout: 5000 // 5 second timeout
+    })
+    
+    if (response.ok) {
+      const healthData = await response.json()
+      res.json({
+        status: "Python service is healthy",
+        python_service: healthData,
+        api_url: PYTHON_API_URL
+      })
+    } else {
+      res.status(503).json({
+        status: "Python service is unhealthy",
+        error: `HTTP ${response.status}`,
+        api_url: PYTHON_API_URL
+      })
+    }
+  } catch (error) {
+    res.status(503).json({
+      status: "Python service is not available",
+      error: error.message,
+      api_url: process.env.PYTHON_API_URL || 'http://localhost:8000',
+      suggestion: "Start Python service with: python predict.py --server"
+    })
+  }
+})
+
 
 
 // Route to get model results
@@ -140,23 +174,23 @@ app.post("/api/predict", async (req, res) => {
       })
     }
 
-    // Simple rule-based prediction (fallback when ML model fails)
-    const prediction = performSimplePrediction(age, gender, symptoms, riskFactors)
+    // Use improved model prediction
+    const prediction = await performImprovedPrediction(age, gender, symptoms, riskFactors)
         
-        // Log prediction
-        const logEntry = {
-          timestamp: new Date().toISOString(),
-          userData: { age, gender, symptoms, riskFactors },
+    // Log prediction
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      userData: { age, gender, symptoms, riskFactors },
       prediction: prediction,
-        }
+    }
         
-        fs.appendFileSync(
-          path.join(__dirname, "prediction_logs.log"),
-          JSON.stringify(logEntry) + "\n"
-        )
+    fs.appendFileSync(
+      path.join(__dirname, "prediction_logs.log"),
+      JSON.stringify(logEntry) + "\n"
+    )
 
-        res.json({
-          success: true,
+    res.json({
+      success: true,
       prediction: prediction,
     })
   } catch (error) {
@@ -169,54 +203,61 @@ app.post("/api/predict", async (req, res) => {
   }
 })
 
-// Simple rule-based prediction function
-function performSimplePrediction(age, gender, symptoms, riskFactors) {
-  // Count symptoms
-  const symptomCount = Object.values(symptoms).filter(s => s === true || (typeof s === 'number' && s > 0)).length
-  
-  // Calculate severity
-  let severity = 1 // mild
-  if (symptomCount >= 5 || age > 60) {
-    severity = 3 // severe
-  } else if (symptomCount >= 3 || age > 40) {
-    severity = 2 // moderate
-  }
-  
-  // Simple rules for hepatitis type prediction
-  let predictedClass = "Hepatitis A"
-  let probabilityA = 0.6
-  let probabilityC = 0.4
-  
-  // Adjust based on symptoms
-  if (symptoms.jaundice) {
-    probabilityA += 0.1
-    probabilityC -= 0.1
-  }
-  
-  if (symptoms.fatigue > 0) {
-    probabilityA += 0.05
-    probabilityC += 0.05
-  }
-  
-  if (symptoms.pain) {
-    probabilityA += 0.05
-    probabilityC += 0.05
-  }
-  
-  // Normalize probabilities
-  const total = probabilityA + probabilityC
-  probabilityA = probabilityA / total
-  probabilityC = probabilityC / total
-  
-  return {
-    success: true,
-    message: "Prediction completed successfully",
-    predictions: [{
-      predicted_class: predictedClass,
-      "probability_Hepatitis A": probabilityA,
-      "probability_Hepatitis C": probabilityC
-    }],
-    total_predictions: 1
+// Improved model-based prediction function using HTTP API
+async function performImprovedPrediction(age, gender, symptoms, riskFactors) {
+  try {
+    // Get Python API URL from environment or use default
+    const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://localhost:8000'
+    
+    // Prepare prediction data for the Python API
+    const predictionData = {
+      age: age,
+      gender: gender,
+      symptoms: {
+        jaundice: symptoms.jaundice || false,
+        dark_urine: symptoms.dark_urine || false,
+        pain: symptoms.pain || false,
+        fatigue: symptoms.fatigue || 0,
+        nausea: symptoms.nausea || false,
+        vomiting: symptoms.vomiting || false,
+        fever: symptoms.fever || false,
+        loss_of_appetite: symptoms.loss_of_appetite || false,
+        joint_pain: symptoms.joint_pain || false
+      },
+      riskFactors: riskFactors || []
+    }
+    
+    console.log('Sending prediction request to Python API:', PYTHON_API_URL)
+    console.log('Prediction data:', JSON.stringify(predictionData, null, 2))
+    
+    // Make HTTP request to Python API
+    const response = await fetch(`${PYTHON_API_URL}/predict`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(predictionData)
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(`Python API error: ${response.status} - ${errorData.detail || 'Unknown error'}`)
+    }
+    
+    const result = await response.json()
+    console.log('Prediction result from Python API:', result)
+    
+    return result
+    
+  } catch (error) {
+    console.error('Error in improved prediction:', error)
+    
+    // If Python API is not available, provide a helpful error message
+    if (error.code === 'ECONNREFUSED' || error.message.includes('fetch')) {
+      throw new Error('Python prediction service is not available. Please start the Python API server using: python predict.py --server')
+    }
+    
+    throw error
   }
 }
 
