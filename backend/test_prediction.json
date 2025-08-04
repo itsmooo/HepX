@@ -1,16 +1,16 @@
 {
   "age": "31-45",
-  "gender": "female",
+  "gender": "male",
   "symptoms": {
     "jaundice": true,
     "dark_urine": true,
     "pain": true,
-    "fatigue": 7,
-    "nausea": true,
+    "fatigue": 2,
+    "nausea": false,
     "vomiting": false,
     "fever": true,
     "loss_of_appetite": true,
     "joint_pain": false
   },
-  "riskFactors": ["recentTravel", "contactWithInfected"]
+  "riskFactors": ["alcohol_consumption", "family_history"]
 }

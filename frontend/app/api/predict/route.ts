@@ -6,8 +6,8 @@ export async function POST(request: Request) {
     const data = await request.json();
     console.log('Received data:', data); // Debug log
 
-    // Forward to Python backend
-    const response = await fetch('http://localhost:5000/api/predict', {
+    // Forward to Python FastAPI backend
+    const response = await fetch('http://localhost:8000/predict', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     console.log('Backend response:', result); // Debug log
 
     if (!response.ok) {
-      throw new Error(result.error || 'Failed to process prediction');
+      throw new Error(result.detail || result.error || 'Failed to process prediction');
     }
 
     return NextResponse.json(result);

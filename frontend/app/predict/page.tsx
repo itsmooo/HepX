@@ -153,12 +153,8 @@ export default function PredictionSelector() {
       setLoading(true);
       setProgress(0);
 
-      // Get API URL from environment variable - pointing to Python FastAPI server
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-      // Call the API with JSON data
-      const response = await fetch(`${API_URL}/predict`, {
+      // Call the Next.js API route which forwards to Python FastAPI server
+      const response = await fetch('/api/predict', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -451,40 +447,23 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                             >
                               Age Group
                             </Label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                              {[
-                                { value: "under18", label: "Under 18" },
-                                { value: "18-30", label: "18-30" },
-                                { value: "31-45", label: "31-45" },
-                                { value: "46-60", label: "46-60" },
-                                { value: "over60", label: "Over 60" },
-                              ].map((ageGroup) => (
-                                <div
-                                  key={ageGroup.value}
-                                  className={`relative p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
-                                    userData.age === ageGroup.value
-                                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                                      : "border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600"
-                                  }`}
-                                  onClick={() => setUserData((prev) => ({ ...prev, age: ageGroup.value }))}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className={`font-medium ${
-                                      userData.age === ageGroup.value
-                                        ? "text-blue-700 dark:text-blue-300"
-                                        : "text-slate-900 dark:text-white"
-                                    }`}>
-                                      {ageGroup.label}
-                                    </span>
-                                    {userData.age === ageGroup.value && (
-                                      <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                        <CheckCircle2 className="w-3 h-3 text-white" />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                            <Select
+                              value={userData.age}
+                              onValueChange={(value) =>
+                                setUserData((prev) => ({ ...prev, age: value }))
+                              }
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select your age group" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="under18">Under 18</SelectItem>
+                                <SelectItem value="18-30">18-30</SelectItem>
+                                <SelectItem value="31-45">31-45</SelectItem>
+                                <SelectItem value="46-60">46-60</SelectItem>
+                                <SelectItem value="over60">Over 60</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </motion.div>
 
                           <motion.div variants={itemVariants}>
@@ -494,7 +473,7 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                             >
                               Gender
                             </Label>
-                                                        <RadioGroup
+                            <RadioGroup
                               value={userData.gender}
                               onValueChange={(value: any) =>
                                 setUserData((prev) => ({
@@ -593,171 +572,98 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                           </motion.div>
 
                           <motion.div variants={itemVariants}>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div className="space-y-4">
-                                {[
-                                  {
-                                    id: "jaundice",
-                                    label: "Yellowing of skin/eyes (Jaundice)",
-                                    icon: "🟡",
-                                    color: "from-yellow-400 to-orange-500"
-                                  },
-                                  { 
-                                    id: "darkUrine", 
-                                    label: "Dark Urine",
-                                    icon: "🟤",
-                                    color: "from-amber-600 to-brown-600"
-                                  },
-                                  { 
-                                    id: "fever", 
-                                    label: "Fever",
-                                    icon: "🌡️",
-                                    color: "from-red-400 to-pink-500"
-                                  },
-                                  { 
-                                    id: "jointPain", 
-                                    label: "Joint Pain",
-                                    icon: "🦴",
-                                    color: "from-gray-400 to-slate-500"
-                                  },
-                                ].map((symptom) => (
-                                  <motion.div
-                                    key={symptom.id}
-                                    className={`relative p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer group ${
-                                      userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean
-                                        ? `border-transparent bg-gradient-to-r ${symptom.color} shadow-lg scale-105`
-                                        : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
-                                    }`}
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => handleSymptomChange(
-                                      symptom.id,
-                                      !(userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean)
-                                    )}
-                                  >
-                                    <Checkbox
-                                      id={symptom.id}
-                                      checked={userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean}
-                                      onCheckedChange={(checked: boolean) => handleSymptomChange(symptom.id, checked === true)}
-                                      className="sr-only"
-                                    />
-                                    <div className="flex items-center space-x-3">
-                                      <div className="text-2xl">{symptom.icon}</div>
-                                      <div className="flex-1">
-                                        <Label
-                                          htmlFor={symptom.id}
-                                          className={`cursor-pointer font-medium ${
-                                            userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean
-                                              ? "text-white"
-                                              : "text-slate-900 dark:text-white"
-                                          }`}
-                                        >
-                                          {symptom.label}
-                                        </Label>
-                                      </div>
-                                      {userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean && (
-                                        <motion.div
-                                          className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center"
-                                          initial={{ scale: 0 }}
-                                          animate={{ scale: 1 }}
-                                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                        >
-                                          <CheckCircle2 className="w-3 h-3 text-white" />
-                                        </motion.div>
-                                      )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {[
+                                {
+                                  id: "jaundice",
+                                  label: "Yellowing of skin/eyes (Jaundice)",
+                                  icon: "🟡",
+                                },
+                                { 
+                                  id: "darkUrine", 
+                                  label: "Dark Urine",
+                                  icon: "🟤",
+                                },
+                                { 
+                                  id: "fever", 
+                                  label: "Fever",
+                                  icon: "🌡️",
+                                },
+                                { 
+                                  id: "jointPain", 
+                                  label: "Joint Pain",
+                                  icon: "🦴",
+                                },
+                                { 
+                                  id: "nausea", 
+                                  label: "Nausea",
+                                  icon: "🤢",
+                                },
+                                { 
+                                  id: "appetite", 
+                                  label: "Loss of Appetite",
+                                  icon: "🍽️",
+                                },
+                              ].map((symptom) => (
+                                <div
+                                  key={symptom.id}
+                                  className={`relative p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+                                    userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean
+                                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                                  }`}
+                                  onClick={() => handleSymptomChange(
+                                    symptom.id,
+                                    !(userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean)
+                                  )}
+                                >
+                                  <Checkbox
+                                    id={symptom.id}
+                                    checked={userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean}
+                                    onCheckedChange={(checked: boolean) => handleSymptomChange(symptom.id, checked === true)}
+                                    className="sr-only"
+                                  />
+                                  <div className="flex items-center space-x-3">
+                                    <div className="text-xl">{symptom.icon}</div>
+                                    <div className="flex-1">
+                                      <Label
+                                        htmlFor={symptom.id}
+                                        className={`cursor-pointer font-medium ${
+                                          userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean
+                                            ? "text-blue-700 dark:text-blue-300"
+                                            : "text-slate-900 dark:text-white"
+                                        }`}
+                                      >
+                                        {symptom.label}
+                                      </Label>
                                     </div>
-                                  </motion.div>
-                                ))}
-                              </div>
-
-                              <div className="space-y-4">
-                                {[
-                                  { 
-                                    id: "nausea", 
-                                    label: "Nausea",
-                                    icon: "🤢",
-                                    color: "from-green-400 to-emerald-500"
-                                  },
-                                  { 
-                                    id: "appetite", 
-                                    label: "Loss of Appetite",
-                                    icon: "🍽️",
-                                    color: "from-purple-400 to-indigo-500"
-                                  },
-                                ].map((symptom) => (
-                                  <motion.div
-                                    key={symptom.id}
-                                    className={`relative p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer group ${
-                                      userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean
-                                        ? `border-transparent bg-gradient-to-r ${symptom.color} shadow-lg scale-105`
-                                        : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
-                                    }`}
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => handleSymptomChange(
-                                      symptom.id,
-                                      !(userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean)
+                                    {userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean && (
+                                      <CheckCircle2 className="w-5 h-5 text-blue-500" />
                                     )}
-                                  >
-                                    <Checkbox
-                                      id={symptom.id}
-                                      checked={userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean}
-                                      onCheckedChange={(checked: boolean) => handleSymptomChange(symptom.id, checked === true)}
-                                      className="sr-only"
-                                    />
-                                    <div className="flex items-center space-x-3">
-                                      <div className="text-2xl">{symptom.icon}</div>
-                                      <div className="flex-1">
-                                        <Label
-                                          htmlFor={symptom.id}
-                                          className={`cursor-pointer font-medium ${
-                                            userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean
-                                              ? "text-white"
-                                              : "text-slate-900 dark:text-white"
-                                          }`}
-                                        >
-                                          {symptom.label}
-                                        </Label>
-                                      </div>
-                                      {userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean && (
-                                        <motion.div
-                                          className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center"
-                                          initial={{ scale: 0 }}
-                                          animate={{ scale: 1 }}
-                                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                        >
-                                          <CheckCircle2 className="w-3 h-3 text-white" />
-                                        </motion.div>
-                                      )}
-                                    </div>
-                                  </motion.div>
-                                ))}
-                              </div>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </motion.div>
 
                           <motion.div
-                            className="space-y-8 mt-8"
+                            className="space-y-6 mt-8"
                             variants={itemVariants}
                           >
-                            <div className="p-6 rounded-2xl bg-gradient-to-br from-red-50/80 via-white/90 to-orange-50/80 dark:from-red-900/20 dark:via-slate-800/90 dark:to-orange-900/20 border border-red-200/50 dark:border-red-700/50 shadow-xl">
+                            <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                               <div className="flex items-center gap-3 mb-4">
-                                <div className="text-2xl">🤕</div>
+                                <div className="text-xl">🤕</div>
                                 <div className="flex-1">
-                                  <Label className="text-slate-900 dark:text-white font-semibold text-lg">
+                                  <Label className="text-slate-900 dark:text-white font-semibold">
                                     Abdominal Pain Level
                                   </Label>
                                   <p className="text-sm text-slate-500 dark:text-slate-400">
                                     Rate your abdominal pain intensity
                                   </p>
                                 </div>
-                                <motion.div
-                                  className="px-4 py-2 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold text-lg shadow-lg"
-                                  animate={{ scale: [1, 1.05, 1] }}
-                                  transition={{ duration: 2, repeat: Infinity }}
-                                >
+                                <div className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium">
                                   {userData.symptoms.abdominalPain / 10}/10
-                                </motion.div>
+                                </div>
                               </div>
                               <Slider
                                 value={[userData.symptoms.abdominalPain]}
@@ -770,43 +676,27 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                 className="mt-4"
                               />
                               <div className="flex justify-between text-sm font-medium text-slate-600 dark:text-slate-300 px-1 mt-3">
-                                <span className="flex items-center gap-1">
-                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                  None
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                                  Mild
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-                                  Moderate
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                                  Severe
-                                </span>
+                                <span>None</span>
+                                <span>Mild</span>
+                                <span>Moderate</span>
+                                <span>Severe</span>
                               </div>
                             </div>
 
-                            <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-50/80 via-white/90 to-indigo-50/80 dark:from-blue-900/20 dark:via-slate-800/90 dark:to-indigo-900/20 border border-blue-200/50 dark:border-blue-700/50 shadow-xl">
+                            <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                               <div className="flex items-center gap-3 mb-4">
-                                <div className="text-2xl">😴</div>
+                                <div className="text-xl">😴</div>
                                 <div className="flex-1">
-                                  <Label className="text-slate-900 dark:text-white font-semibold text-lg">
+                                  <Label className="text-slate-900 dark:text-white font-semibold">
                                     Fatigue Level
                                   </Label>
                                   <p className="text-sm text-slate-500 dark:text-slate-400">
                                     Rate your fatigue and tiredness level
                                   </p>
                                 </div>
-                                <motion.div
-                                  className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold text-lg shadow-lg"
-                                  animate={{ scale: [1, 1.05, 1] }}
-                                  transition={{ duration: 2, repeat: Infinity, delay: 1 }}
-                                >
+                                <div className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium">
                                   {userData.symptoms.fatigue / 10}/10
-                                </motion.div>
+                                </div>
                               </div>
                               <Slider
                                 value={[userData.symptoms.fatigue]}
@@ -819,22 +709,10 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                 className="mt-4"
                               />
                               <div className="flex justify-between text-sm font-medium text-slate-600 dark:text-slate-300 px-1 mt-3">
-                                <span className="flex items-center gap-1">
-                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                  None
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                                  Mild
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <div className="w-2 h-2 bg-indigo-400 rounded-full"></div>
-                                  Moderate
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                                  Severe
-                                </span>
+                                <span>None</span>
+                                <span>Mild</span>
+                                <span>Moderate</span>
+                                <span>Severe</span>
                               </div>
                             </div>
                           </motion.div>
@@ -872,39 +750,33 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                 label: "Recent Travel to High-Risk Areas",
                                 description: "Travel to regions with known hepatitis outbreaks in the past 6 months",
                                 icon: "✈️",
-                                color: "from-blue-500 to-cyan-500"
                               },
                               {
                                 id: "bloodTransfusion",
                                 label: "History of Blood Transfusion",
                                 description: "Received blood products before comprehensive screening was implemented",
                                 icon: "🩸",
-                                color: "from-red-500 to-pink-500"
                               },
                               {
                                 id: "unsafeInjection",
                                 label: "History of Unsafe Injection Practices",
                                 description: "Shared needles or received injections with potentially unsterilized equipment",
                                 icon: "💉",
-                                color: "from-orange-500 to-red-500"
                               },
                               {
                                 id: "contactWithInfected",
                                 label: "Contact with Infected Person",
                                 description: "Close contact with someone diagnosed with hepatitis",
                                 icon: "👥",
-                                color: "from-purple-500 to-indigo-500"
                               },
                             ].map((factor) => (
-                              <motion.div
+                              <div
                                 key={factor.id}
-                                className={`relative p-6 rounded-2xl border-2 transition-all duration-300 cursor-pointer group ${
+                                className={`relative p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
                                   userData.riskFactors.includes(factor.id)
-                                    ? `border-transparent bg-gradient-to-r ${factor.color} shadow-lg scale-105`
-                                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
+                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
                                 }`}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
                                 onClick={() => handleRiskFactorToggle(factor.id)}
                               >
                                 <Checkbox
@@ -914,58 +786,43 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                   className="sr-only"
                                 />
                                 <div className="flex items-start space-x-4">
-                                  <div className="text-3xl flex-shrink-0">{factor.icon}</div>
+                                  <div className="text-2xl flex-shrink-0">{factor.icon}</div>
                                   <div className="flex-1">
                                     <Label
                                       htmlFor={factor.id}
-                                      className={`font-semibold cursor-pointer text-lg ${
+                                      className={`font-semibold cursor-pointer ${
                                         userData.riskFactors.includes(factor.id)
-                                          ? "text-white"
+                                          ? "text-blue-700 dark:text-blue-300"
                                           : "text-slate-900 dark:text-white"
                                       }`}
                                     >
                                       {factor.label}
                                     </Label>
-                                    <p className={`text-sm mt-2 leading-relaxed ${
+                                    <p className={`text-sm mt-1 leading-relaxed ${
                                       userData.riskFactors.includes(factor.id)
-                                        ? "text-white/90"
+                                        ? "text-blue-600 dark:text-blue-400"
                                         : "text-slate-500 dark:text-slate-400"
                                     }`}>
                                       {factor.description}
                                     </p>
                                   </div>
                                   {userData.riskFactors.includes(factor.id) && (
-                                    <motion.div
-                                      className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0"
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                    >
-                                      <CheckCircle2 className="w-4 h-4 text-white" />
-                                    </motion.div>
+                                    <CheckCircle2 className="w-5 h-5 text-blue-500 flex-shrink-0" />
                                   )}
                                 </div>
-                                {userData.riskFactors.includes(factor.id) && (
-                                  <motion.div
-                                    className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-2xl"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ duration: 0.3 }}
-                                  />
-                                )}
-                              </motion.div>
+                              </div>
                             ))}
                           </motion.div>
 
                           <motion.div
-                            className="p-6 mt-6 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                            className="p-4 mt-6 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700"
                             variants={itemVariants}
                           >
-                            <h4 className="font-semibold mb-3 text-slate-900 dark:text-white flex items-center gap-2">
-                              <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            <h4 className="font-semibold mb-2 text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4" />
                               Important Note:
                             </h4>
-                            <p className="text-slate-700 dark:text-slate-300">
+                            <p className="text-amber-700 dark:text-amber-300 text-sm">
                               This assessment is not a medical diagnosis. It's
                               based on the information you provided and is
                               intended to guide your next steps. For accurate
@@ -1006,326 +863,150 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.5 }}
                   >
-                    <div className="mb-8 p-8 rounded-3xl bg-gradient-to-br from-slate-50/90 via-white/95 to-blue-50/80 dark:from-slate-900/90 dark:via-slate-800/95 dark:to-blue-900/80 backdrop-blur-xl border border-blue-200/50 dark:border-blue-800/50 shadow-2xl relative overflow-hidden">
-                      {/* Enhanced animated background with multiple layers */}
-                      <div className="absolute inset-0 z-0 pointer-events-none">
-                        <div className="absolute -top-16 -left-16 w-80 h-80 bg-gradient-to-br from-blue-400/20 via-indigo-300/15 to-purple-400/10 rounded-full blur-3xl animate-pulse" />
-                        <div className="absolute top-1/2 right-0 w-64 h-64 bg-gradient-to-bl from-emerald-300/15 via-blue-400/10 to-transparent rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2s' }} />
-                        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-gradient-to-tr from-violet-400/20 via-blue-300/15 to-transparent rounded-full blur-2xl animate-pulse" style={{ animationDelay: '3s' }} />
-                        {/* Floating particles */}
-                        <div className="absolute top-10 left-10 w-2 h-2 bg-blue-400/40 rounded-full animate-bounce" style={{ animationDelay: '0.5s' }} />
-                        <div className="absolute top-20 right-20 w-1.5 h-1.5 bg-indigo-400/40 rounded-full animate-bounce" style={{ animationDelay: '1.2s' }} />
-                        <div className="absolute bottom-16 left-16 w-1 h-1 bg-purple-400/40 rounded-full animate-bounce" style={{ animationDelay: '2.1s' }} />
-                      </div>
-                      <div className="text-center relative z-10">
-                        <motion.div
-                          initial={{ scale: 0.8, opacity: 0, y: 20 }}
-                          animate={{ scale: 1, opacity: 1, y: 0 }}
-                          transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.2 }}
-                        >
-                          <div className="mb-6">
-                            <motion.div
-                              className="inline-flex items-center justify-center w-20 h-20 mb-4 rounded-full bg-gradient-to-r from-emerald-400 via-blue-500 to-purple-600 shadow-xl"
-                              animate={{ 
-                                rotate: [0, 360],
-                                scale: [1, 1.1, 1]
-                              }}
-                              transition={{ 
-                                rotate: { duration: 20, repeat: Infinity, ease: "linear" },
-                                scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-                              }}
-                            >
-                              <CheckCircle2 className="h-10 w-10 text-white" />
-                            </motion.div>
-                            <h3 className="text-4xl font-extrabold mb-2 text-slate-900 dark:text-white tracking-tight">
-                              <span className="inline-block bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 bg-clip-text text-transparent">
-                                Analysis Complete
-                              </span>
-                            </h3>
-                            <p className="text-lg text-slate-600 dark:text-slate-300 font-medium">
-                              Your hepatitis risk assessment results
-                            </p>
-                          </div>
-                        </motion.div>
-
-                        {predictionResult?.prediction.predictions.map((pred, index) => (
-                          <motion.div
-                            key={index}
-                            className="mt-8"
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ 
-                              delay: 0.5 + index * 0.2,
-                              type: "spring",
-                              stiffness: 100,
-                              damping: 15
-                            }}
-                          >
-                            {/* Prediction Classification Badge */}
-                            <motion.div
-                              className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-600 text-white text-xl font-bold shadow-xl mb-8 relative overflow-hidden"
-                              whileHover={{ 
-                                scale: 1.05,
-                                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-                              }}
-                              whileTap={{ scale: 0.98 }}
-                            >
-                              {/* Shimmer effect */}
-                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -translate-x-full animate-shimmer" />
-                              <motion.div
-                                animate={{ rotate: [0, 360] }}
-                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                              >
-                                <CheckCircle2 className="h-7 w-7 text-white drop-shadow-lg" />
-                              </motion.div>
-                              <span className="relative z-10">{pred.predicted_class}</span>
-                            </motion.div>
-
-                            {/* Enhanced Results Cards */}
-                            <motion.div
-                              className="grid gap-6 md:grid-cols-2"
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 0.7 + index * 0.2 }}
-                            >
-                              {/* Hepatitis A Card */}
-                              <motion.div
-                                className="group p-6 rounded-2xl bg-gradient-to-br from-blue-50/80 via-white/90 to-cyan-50/80 dark:from-blue-900/30 dark:via-slate-800/90 dark:to-cyan-900/30 border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden"
-                                whileHover={{ y: -5, scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                              >
-                                {/* Card background effect */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 via-transparent to-cyan-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                
-                                <div className="relative z-10">
-                                  <div className="flex items-center justify-between mb-4">
-                                    <h4 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                                      <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-cyan-500"></div>
-                                      Hepatitis A
-                                    </h4>
-                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                                      Type A
-                                    </Badge>
-                                  </div>
-                                  
-                                  <div className="space-y-3">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Probability</span>
-                                      <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                        {(pred["probability_Hepatitis A"] * 100).toFixed(1)}%
-                                      </span>
-                                    </div>
-                                    
-                                    <div className="relative">
-                                      <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
-                                        <motion.div
-                                          className="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-600 shadow-lg relative overflow-hidden"
-                                          style={{ width: `${pred["probability_Hepatitis A"] * 100}%` }}
-                                          initial={{ width: 0 }}
-                                          animate={{ width: `${pred["probability_Hepatitis A"] * 100}%` }}
-                                          transition={{ duration: 1.5, delay: 0.8, ease: "easeInOut" }}
-                                        >
-                                          {/* Animated shine effect */}
-                                          <motion.div
-                                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                                            animate={{ x: ["-100%", "100%"] }}
-                                            transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
-                                          />
-                                        </motion.div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </motion.div>
-
-                              {/* Hepatitis C Card */}
-                              <motion.div
-                                className="group p-6 rounded-2xl bg-gradient-to-br from-purple-50/80 via-white/90 to-indigo-50/80 dark:from-purple-900/30 dark:via-slate-800/90 dark:to-indigo-900/30 border border-purple-200/50 dark:border-purple-700/50 shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden"
-                                whileHover={{ y: -5, scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                              >
-                                {/* Card background effect */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-purple-400/5 via-transparent to-indigo-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                
-                                <div className="relative z-10">
-                                  <div className="flex items-center justify-between mb-4">
-                                    <h4 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                                      <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-400 to-indigo-500"></div>
-                                      Hepatitis C
-                                    </h4>
-                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
-                                      Type C
-                                    </Badge>
-                                  </div>
-                                  
-                                  <div className="space-y-3">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Probability</span>
-                                      <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                                        {(pred["probability_Hepatitis C"] * 100).toFixed(1)}%
-                                      </span>
-                                    </div>
-                                    
-                                    <div className="relative">
-                                      <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
-                                        <motion.div
-                                          className="h-full bg-gradient-to-r from-purple-500 via-indigo-400 to-purple-600 shadow-lg relative overflow-hidden"
-                                          style={{ width: `${pred["probability_Hepatitis C"] * 100}%` }}
-                                          initial={{ width: 0 }}
-                                          animate={{ width: `${pred["probability_Hepatitis C"] * 100}%` }}
-                                          transition={{ duration: 1.5, delay: 1.0, ease: "easeInOut" }}
-                                        >
-                                          {/* Animated shine effect */}
-                                          <motion.div
-                                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                                            animate={{ x: ["-100%", "100%"] }}
-                                            transition={{ duration: 2, repeat: Infinity, delay: 2.0 }}
-                                          />
-                                        </motion.div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </motion.div>
-                            </motion.div>
-                          </motion.div>
-                        ))}
-
-                        {/* Important Notice */}
-                        <motion.div
-                          className="text-center mt-12"
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.2 }}
-                        >
-                          <Alert className="mb-8 border-amber-200 bg-gradient-to-r from-amber-50/80 via-yellow-50/90 to-orange-50/80 dark:from-amber-900/20 dark:via-yellow-900/30 dark:to-orange-900/20 shadow-lg">
-                            <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                            <AlertDescription className="text-left">
-                              <strong className="text-amber-800 dark:text-amber-200">Medical Disclaimer:</strong> This AI-powered analysis is for informational purposes only and should not replace professional medical advice. The results are based on the symptoms and risk factors you provided and are meant to guide your next steps.
-                            </AlertDescription>
-                          </Alert>
-                        </motion.div>
-
-                        {/* Enhanced Recommendations Section */}
-                        <motion.div
-                          className="mt-8"
-                          initial={{ opacity: 0, y: 30 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.4 }}
-                        >
-                          <motion.div
-                            className="p-8 rounded-3xl bg-gradient-to-br from-emerald-50/80 via-white/95 to-blue-50/80 dark:from-emerald-900/20 dark:via-slate-800/90 dark:to-blue-900/20 border border-emerald-200/50 dark:border-emerald-700/50 shadow-2xl backdrop-blur-md relative overflow-hidden"
-                            whileHover={{ scale: 1.01 }}
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                          >
-                            {/* Background decorations */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-300/10 via-blue-300/5 to-transparent rounded-full blur-2xl" />
-                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-300/10 via-emerald-300/5 to-transparent rounded-full blur-xl" />
-                            
-                            <div className="relative z-10">
-                              <motion.h4 
-                                className="font-bold mb-6 text-slate-900 dark:text-white flex items-center gap-3 text-2xl"
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 1.6 }}
-                              >
-                                <motion.div
-                                  className="p-2 bg-gradient-to-r from-emerald-500 to-blue-600 rounded-xl shadow-lg"
-                                  animate={{ rotate: [0, 5, -5, 0] }}
-                                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                                >
-                                  <CheckCircle2 className="h-6 w-6 text-white" />
-                                </motion.div>
-                                Recommended Next Steps
-                              </motion.h4>
-                              
-                              <div className="space-y-4">
-                                {[
-                                  {
-                                    icon: "🏥",
-                                    title: "Consult Healthcare Provider",
-                                    description: "Schedule an appointment with your doctor or hepatologist for professional evaluation",
-                                    priority: "high"
-                                  },
-                                  {
-                                    icon: "📋",
-                                    title: "Share Assessment Results",
-                                    description: "Bring these results and your symptoms history to your medical consultation",
-                                    priority: "high"
-                                  },
-                                  {
-                                    icon: "🧪",
-                                    title: "Medical Testing",
-                                    description: "Get proper blood tests and liver function tests for accurate diagnosis",
-                                    priority: "medium"
-                                  },
-                                  {
-                                    icon: "📱",
-                                    title: "Monitor Symptoms",
-                                    description: "Keep track of any changes in symptoms and overall health condition",
-                                    priority: "medium"
-                                  }
-                                ].map((step, i) => (
-                                  <motion.div
-                                    key={i}
-                                    className={`group flex items-start gap-4 p-4 rounded-2xl transition-all duration-300 cursor-pointer relative overflow-hidden ${
-                                      step.priority === 'high' 
-                                        ? 'bg-gradient-to-r from-red-50/80 to-orange-50/80 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200/30 dark:border-red-700/30 hover:shadow-lg' 
-                                        : 'bg-gradient-to-r from-blue-50/80 to-emerald-50/80 dark:from-blue-900/20 dark:to-emerald-900/20 border border-blue-200/30 dark:border-blue-700/30 hover:shadow-md'
-                                    }`}
-                                    initial={{ x: -20, opacity: 0 }}
-                                    animate={{ x: 0, opacity: 1 }}
-                                    transition={{ 
-                                      delay: 1.8 + i * 0.15,
-                                      type: "spring",
-                                      stiffness: 100,
-                                      damping: 20
-                                    }}
-                                    whileHover={{ x: 5, scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                  >
-                                    {/* Hover effect background */}
-                                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                    
-                                    <motion.div 
-                                      className="flex-shrink-0 text-2xl p-2 rounded-xl bg-white/80 dark:bg-slate-700/80 shadow-md"
-                                      whileHover={{ rotate: 15, scale: 1.1 }}
-                                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                    >
-                                      {step.icon}
-                                    </motion.div>
-                                    
-                                    <div className="flex-1 relative z-10">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <h5 className="font-semibold text-slate-900 dark:text-white text-lg">
-                                          {step.title}
-                                        </h5>
-                                        {step.priority === 'high' && (
-                                          <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 text-xs">
-                                            Priority
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
-                                        {step.description}
-                                      </p>
-                                    </div>
-                                    
-                                    <motion.div
-                                      className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                                      initial={{ x: 10 }}
-                                      whileHover={{ x: 0 }}
-                                    >
-                                      <ChevronRight className="h-5 w-5 text-slate-400 dark:text-slate-500" />
-                                    </motion.div>
-                                  </motion.div>
-                                ))}
-                              </div>
-                            </div>
-                          </motion.div>
-                        </motion.div>
-                      </div>
+                    <div className="text-center mb-8">
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-green-100 dark:bg-green-900/20"
+                      >
+                        <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+                      </motion.div>
+                      <h3 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">
+                        Analysis Complete
+                      </h3>
+                      <p className="text-slate-600 dark:text-slate-300">
+                        Your hepatitis risk assessment results
+                      </p>
                     </div>
+
+                    {predictionResult?.prediction.predictions.map((pred, index) => (
+                      <motion.div
+                        key={index}
+                        className="mb-8"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 + index * 0.1 }}
+                      >
+                        <div className="text-center mb-6">
+                          <Badge className="text-lg px-6 py-2 bg-blue-600 text-white">
+                            {pred.predicted_class}
+                          </Badge>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                          <Card className="border-blue-200 dark:border-blue-700">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-lg flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                                Hepatitis A
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-center">
+                                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                                  {(pred["probability_Hepatitis A"] * 100).toFixed(1)}%
+                                </div>
+                                <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                  <motion.div
+                                    className="h-full bg-blue-500"
+                                    style={{ width: `${pred["probability_Hepatitis A"] * 100}%` }}
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${pred["probability_Hepatitis A"] * 100}%` }}
+                                    transition={{ duration: 1, delay: 0.5 }}
+                                  />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="border-purple-200 dark:border-purple-700">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-lg flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                                Hepatitis C
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-center">
+                                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+                                  {(pred["probability_Hepatitis C"] * 100).toFixed(1)}%
+                                </div>
+                                <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                  <motion.div
+                                    className="h-full bg-purple-500"
+                                    style={{ width: `${pred["probability_Hepatitis C"] * 100}%` }}
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${pred["probability_Hepatitis C"] * 100}%` }}
+                                    transition={{ duration: 1, delay: 0.7 }}
+                                  />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </motion.div>
+                    ))}
+
+                    <Alert className="mb-8 border-amber-200 bg-amber-50 dark:bg-amber-900/20">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <AlertDescription>
+                        <strong>Medical Disclaimer:</strong> This AI-powered analysis is for informational purposes only and should not replace professional medical advice. The results are based on the symptoms and risk factors you provided and are meant to guide your next steps.
+                      </AlertDescription>
+                    </Alert>
+
+                    <Card className="bg-slate-50 dark:bg-slate-800">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                          Recommended Next Steps
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {[
+                            {
+                              icon: "🏥",
+                              title: "Consult Healthcare Provider",
+                              description: "Schedule an appointment with your doctor or hepatologist for professional evaluation",
+                            },
+                            {
+                              icon: "📋",
+                              title: "Share Assessment Results",
+                              description: "Bring these results and your symptoms history to your medical consultation",
+                            },
+                            {
+                              icon: "🧪",
+                              title: "Medical Testing",
+                              description: "Get proper blood tests and liver function tests for accurate diagnosis",
+                            },
+                            {
+                              icon: "📱",
+                              title: "Monitor Symptoms",
+                              description: "Keep track of any changes in symptoms and overall health condition",
+                            }
+                          ].map((step, i) => (
+                            <motion.div
+                              key={i}
+                              className="flex items-start gap-4 p-4 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600"
+                              initial={{ x: -20, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ delay: 0.3 + i * 0.1 }}
+                            >
+                              <div className="text-2xl">{step.icon}</div>
+                              <div className="flex-1">
+                                <h5 className="font-semibold text-slate-900 dark:text-white mb-1">
+                                  {step.title}
+                                </h5>
+                                <p className="text-slate-600 dark:text-slate-300 text-sm">
+                                  {step.description}
+                                </p>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
                   </motion.div>
                 )}
               </AnimatePresence>
