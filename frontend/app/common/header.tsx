@@ -72,6 +72,7 @@ const Header = () => {
     { href: "/about", label: "Our Team" },
     { href: "/faq", label: "FAQ" },
     ...(user ? [{ href: "/profile", label: "Profile" }] : []),
+    ...(user?.role === "admin" ? [{ href: "/admin", label: "Admin Dashboard" }] : []),
   ];
 
   // Handle scroll effect

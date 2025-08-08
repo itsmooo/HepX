@@ -152,7 +152,9 @@ class InteractiveHepatitisTester:
             
             # Decode prediction
             predicted_type = self.label_encoder.inverse_transform([prediction])[0]
-            confidence = prediction_proba if prediction == 1 else 1 - prediction_proba
+            
+            # FIXED: Calculate confidence as the maximum probability between the two classes
+            confidence = max(prediction_proba, 1 - prediction_proba)
             
             return predicted_type, confidence
             

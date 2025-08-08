@@ -22,7 +22,7 @@ artifacts = None
 class Symptoms(BaseModel):
     jaundice: bool = False
     dark_urine: bool = False
-    pain: bool = False
+    pain: int = 0  # Changed from bool to int to handle numeric values from frontend
     fatigue: int = 0
     nausea: bool = False
     vomiting: bool = False
@@ -126,7 +126,7 @@ async def predict_hepatitis(request: PredictionRequest):
             'symptoms': {
                 'jaundice': request.symptoms.jaundice,
                 'dark_urine': request.symptoms.dark_urine,
-                'pain': request.symptoms.pain > 0,  # Convert number to boolean
+                'pain': request.symptoms.pain,  # This is already an int from frontend
                 'fatigue': request.symptoms.fatigue,  # This is already an int from frontend
                 'nausea': request.symptoms.nausea,
                 'vomiting': request.symptoms.vomiting,
@@ -171,8 +171,8 @@ def create_prediction_data(user_data):
     symptom_count = sum([
         symptoms.get('jaundice', False),
         symptoms.get('dark_urine', False),
-        symptoms.get('pain', False),
-        symptoms.get('fatigue', 0) > 0,
+        symptoms.get('pain', 0) > 0,  # Convert numeric pain to boolean
+        symptoms.get('fatigue', 0) > 0,  # Convert numeric fatigue to boolean
         symptoms.get('nausea', False),
         symptoms.get('vomiting', False),
         symptoms.get('fever', False),
@@ -232,10 +232,10 @@ def create_symptoms_text(symptoms):
     if symptoms.get('jaundice'):
         symptom_list.append('jaundice')
     if symptoms.get('dark_urine'):
-        symptom_list.append('dark urine')
-    if symptoms.get('pain'):
+        symptom_list.append('dark-colored urine')  # Match the feature engineering exactly
+    if symptoms.get('pain', 0) > 0:  # Handle numeric pain value
         symptom_list.append('abdominal pain')
-    if symptoms.get('fatigue', 0) > 0:
+    if symptoms.get('fatigue', 0) > 0:  # Handle numeric fatigue value
         symptom_list.append('fatigue')
     if symptoms.get('nausea'):
         symptom_list.append('nausea')
@@ -350,14 +350,17 @@ def predict_with_improved_model_api(data):
     
     # Decode prediction
     predicted_type = label_encoder.inverse_transform([prediction])[0]
-    confidence = prediction_proba if prediction == 1 else 1 - prediction_proba
     
-    # Create results
+    # FIXED: Calculate confidence as the maximum probability between the two classes
+    # This ensures confidence is always the higher probability value
+    confidence = max(prediction_proba, 1 - prediction_proba)
+    
+    # Create results with corrected probability assignments
     results = {
         'predicted_class': predicted_type,
         'confidence': float(confidence),
-        'probability_Hepatitis A': float(1 - prediction_proba),
-        'probability_Hepatitis C': float(prediction_proba)
+        'probability_Hepatitis A': float(1 - prediction_proba),  # Class 0
+        'probability_Hepatitis C': float(prediction_proba)       # Class 1
     }
     
     return results
@@ -461,14 +464,16 @@ def predict_with_improved_model(
     
     # Decode prediction
     predicted_type = label_encoder.inverse_transform([prediction])[0]
-    confidence = prediction_proba if prediction == 1 else 1 - prediction_proba
     
-    # Create results
+    # FIXED: Calculate confidence as the maximum probability between the two classes
+    confidence = max(prediction_proba, 1 - prediction_proba)
+    
+    # Create results with corrected probability assignments
     results = {
         'predicted_class': predicted_type,
         'confidence': float(confidence),
-        'probability_hepatitis_a': float(1 - prediction_proba),
-        'probability_hepatitis_c': float(prediction_proba)
+        'probability_hepatitis_a': float(1 - prediction_proba),  # Class 0
+        'probability_hepatitis_c': float(prediction_proba)       # Class 1
     }
     
     return results

@@ -129,7 +129,9 @@ def analyze_confidence_issues():
         prediction_proba = model.predict(input_scaled, verbose=0)[0][0]
         prediction = (prediction_proba > 0.5).astype(int)
         predicted_type = label_encoder.inverse_transform([prediction])[0]
-        confidence = prediction_proba if prediction == 1 else 1 - prediction_proba
+        
+        # FIXED: Calculate confidence as the maximum probability between the two classes
+        confidence = max(prediction_proba, 1 - prediction_proba)
         
         print(f"   Predicted: {predicted_type}")
         print(f"   Confidence: {confidence:.1%}")

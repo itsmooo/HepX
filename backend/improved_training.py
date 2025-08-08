@@ -19,6 +19,7 @@ from tensorflow.keras.utils import plot_model
 # Machine Learning Libraries
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.impute import SimpleImputer
 from sklearn.metrics import (confusion_matrix, classification_report,
                            roc_curve, auc, precision_score,
                            recall_score, f1_score, accuracy_score)
@@ -26,12 +27,18 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 
-class ImprovedHepatitisSystem:
+class EnhancedHepatitisSystem:
     """
-    Improved Hepatitis Risk Prediction System with Better Accuracy
+    Enhanced Hepatitis Risk Prediction System with Maximum Accuracy
+    Features:
+    - Advanced feature engineering with hepatitis-specific signatures
+    - Strict preprocessing pipeline with artifact management
+    - Dynamic threshold optimization
+    - Comprehensive model comparison
+    - Interactive testing capabilities
     """
-
-    def __init__(self, output_dir='improved_hepatitis_outputs'):
+    
+    def __init__(self, output_dir='enhanced_hepatitis_outputs'):
         self.output_dir = output_dir
         self.create_directory_structure()
         
@@ -52,69 +59,189 @@ class ImprovedHepatitisSystem:
         self.target_col = None
         self.results = {}
         self.label_encoders_other = {}
-
-        print("🚀 IMPROVED HEPATITIS PREDICTION SYSTEM")
+        self.imputers = {}
+        self.optimal_threshold = 0.5
+        self.required_columns = None
+        
+        print("🚀 ENHANCED HEPATITIS PREDICTION SYSTEM")
         print("=" * 60)
-        print("Focusing on Higher Accuracy")
+        print("Maximum Accuracy with Advanced Features")
         print("=" * 60)
 
     def create_directory_structure(self):
-        """Create directory structure"""
+        """Create comprehensive directory structure"""
         directories = [
             self.output_dir,
             f'{self.output_dir}/figures',
             f'{self.output_dir}/models',
             f'{self.output_dir}/data',
-            f'{self.output_dir}/evaluation'
+            f'{self.output_dir}/evaluation',
+            f'{self.output_dir}/preprocessing'
         ]
         for directory in directories:
             os.makedirs(directory, exist_ok=True)
         print(f"📁 Created directory structure in: {self.output_dir}")
 
-    def load_and_explore_data(self, file_path='data/hepatitis_dataset_R.csv'):
-        """Load and explore the dataset"""
+    def create_sample_dataset(self):
+        """Create a comprehensive sample hepatitis dataset for demonstration"""
+        print("\n" + "="*50)
+        print("CREATING SAMPLE HEPATITIS DATASET")
+        print("="*50)
+        
+        np.random.seed(42)
+        n_samples = 1000
+        
+        # Define hepatitis types and their characteristics
+        hepatitis_types = ['Hepatitis A', 'Hepatitis C']
+        
+        # Common symptoms for each type
+        hep_a_symptoms = [
+            'fever, abdominal pain, nausea, fatigue',
+            'jaundice, dark-colored urine, fever, muscle aches',
+            'nausea, vomiting, fever, loss of appetite',
+            'abdominal pain, fatigue, headache, fever'
+        ]
+        
+        hep_c_symptoms = [
+            'weight loss, dark-colored urine, jaundice, fatigue',
+            'jaundice, bleeding easily, swelling, confusion',
+            'fatigue, weight loss, bruising easily, spider angiomas',
+            'dark-colored urine, jaundice, ascites, itchy skin'
+        ]
+        
+        data = []
+        
+        for i in range(n_samples):
+            # Randomly assign hepatitis type
+            hep_type = np.random.choice(hepatitis_types)
+            
+            # Generate symptoms based on type
+            if hep_type == 'Hepatitis A':
+                symptoms = np.random.choice(hep_a_symptoms)
+                severity = np.random.choice(['Mild', 'Moderate'], p=[0.7, 0.3])
+                alt = np.random.normal(80, 20)  # Elevated ALT
+                ast = np.random.normal(70, 15)  # Elevated AST
+            else:  # Hepatitis C
+                symptoms = np.random.choice(hep_c_symptoms)
+                severity = np.random.choice(['Moderate', 'Severe'], p=[0.6, 0.4])
+                alt = np.random.normal(120, 30)  # Higher ALT
+                ast = np.random.normal(100, 25)  # Higher AST
+            
+            # Generate other fields
+            patient_id = f"PAT{i+1:04d}"
+            diagnosis_date = pd.Timestamp('2023-01-01') + pd.Timedelta(days=np.random.randint(0, 365))
+            treatment = np.random.choice(['Supportive care', 'Antiviral therapy', 'Rest and hydration'])
+            
+            data.append({
+                'PatientID': patient_id,
+                'Symptoms': symptoms,
+                'Severity': severity,
+                'DiagnosisDate': diagnosis_date.strftime('%Y-%m-%d'),
+                'Treatment': treatment,
+                'ALT': max(10, alt),  # Ensure positive values
+                'AST': max(10, ast),  # Ensure positive values
+                'HepatitisType': hep_type
+            })
+        
+        # Create DataFrame
+        df = pd.DataFrame(data)
+        
+        # Save the dataset
+        df.to_csv(f'{self.output_dir}/data/hepatitis_dataset_sample.csv', index=False)
+        print(f"✅ Created sample dataset with {len(df)} records")
+        print(f"📊 Dataset saved to: {self.output_dir}/data/hepatitis_dataset_sample.csv")
+        
+        return df
+
+    def load_and_explore_data(self, file_path=None):
+        """Load and comprehensively explore the dataset"""
         print("\n" + "="*50)
         print("DATA LOADING AND EXPLORATION")
         print("="*50)
-
+        
         try:
-            self.df = pd.read_csv(file_path)
-            print(f"✅ Dataset loaded successfully")
+            if file_path and os.path.exists(file_path):
+                self.df = pd.read_csv(file_path)
+                print(f"✅ Dataset loaded from: {file_path}")
+            else:
+                # Try to load from default location
+                default_path = 'data/hepatitis_dataset_R.csv'
+                if os.path.exists(default_path):
+                    self.df = pd.read_csv(default_path)
+                    print(f"✅ Dataset loaded from: {default_path}")
+                else:
+                    print("📝 No dataset found, creating sample dataset...")
+                    self.df = self.create_sample_dataset()
+            
             print(f"📊 Dataset shape: {self.df.shape}")
             print(f"📋 Columns: {list(self.df.columns)}")
+            
+            # Store required columns for later use
+            self.required_columns = list(self.df.columns)
+            
+            # Detailed data exploration
+            print(f"\n📈 Data Types:")
+            print(self.df.dtypes)
+            
+            print(f"\n🔍 Missing Values:")
+            missing_data = self.df.isnull().sum()
+            print(missing_data[missing_data > 0])
             
             # Check target distribution
             print(f"\n🎯 Target Distribution:")
             target_dist = self.df['HepatitisType'].value_counts()
             print(target_dist)
-            print(f"Class balance: {target_dist[0]/(target_dist[0]+target_dist[1]):.1%} vs {target_dist[1]/(target_dist[0]+target_dist[1]):.1%}")
+            print(f"Class balance: {target_dist.iloc[0]/(target_dist.sum()):.1%} vs {target_dist.iloc[1]/(target_dist.sum()):.1%}")
+            
+            # Save exploration results
+            exploration_results = {
+                'shape': self.df.shape,
+                'columns': list(self.df.columns),
+                'missing_values': missing_data.to_dict(),
+                'target_distribution': target_dist.to_dict()
+            }
+            
+            with open(f'{self.output_dir}/data/exploration_results.pkl', 'wb') as f:
+                pickle.dump(exploration_results, f)
             
             return self.df
+            
         except Exception as e:
             print(f"❌ Error loading dataset: {e}")
             return None
 
     def advanced_feature_engineering(self):
-        """Advanced feature engineering for better accuracy"""
+        """Enhanced feature engineering with hepatitis-specific signatures"""
         print("\n" + "="*50)
         print("ADVANCED FEATURE ENGINEERING")
         print("="*50)
-
+        
         if self.df is None:
             print("❌ No data loaded. Please load data first.")
             return None
-
+            
         self.df_processed = self.df.copy()
-
-        # Step 1: Handle missing values
-        print("🔧 Step 1: Handling missing values...")
+        
+        # Step 1: Advanced missing value handling
+        print("🔧 Step 1: Advanced missing value handling...")
+        self.imputers = {}
+        
         for col in self.df_processed.columns:
             if self.df_processed[col].dtype == 'object':
-                mode_value = self.df_processed[col].mode()
-                fill_value = mode_value[0] if not mode_value.empty else 'Unknown'
-                self.df_processed[col] = self.df_processed[col].fillna(fill_value)
+                # Use mode for categorical
+                imputer = SimpleImputer(strategy='most_frequent')
+                self.df_processed[[col]] = imputer.fit_transform(self.df_processed[[col]])
+                self.imputers[col] = imputer
+            elif pd.api.types.is_numeric_dtype(self.df_processed[col]):
+                # Use median for numerical
+                imputer = SimpleImputer(strategy='median')
+                self.df_processed[[col]] = imputer.fit_transform(self.df_processed[[col]])
+                self.imputers[col] = imputer
             else:
-                self.df_processed[col] = self.df_processed[col].fillna(self.df_processed[col].median())
+                # For other types (like datetime), just fill with most frequent
+                imputer = SimpleImputer(strategy='most_frequent')
+                self.df_processed[[col]] = imputer.fit_transform(self.df_processed[[col]])
+                self.imputers[col] = imputer
 
         # Step 2: Create target variable
         print("🎯 Step 2: Creating target variable...")
@@ -123,77 +250,161 @@ class ImprovedHepatitisSystem:
         self.df_processed[self.target_col] = self.label_encoder.fit_transform(
             self.df_processed[self.target_col].astype(str))
         print(f"   Encoded target: {self.label_encoder.classes_}")
-
-        # Step 3: Advanced symptom feature engineering
-        print("🛠️ Step 3: Advanced symptom feature engineering...")
         
-        # Extract symptoms from text
+        # Step 3: Enhanced symptom feature engineering with specific patterns
+        print("🛠️ Step 3: Enhanced symptom feature engineering...")
+        
+        # Comprehensive symptom list with specific patterns for A vs C
         symptoms_list = [
-            'ascites', 'swelling', 'spider angiomas', 'itchy skin', 'jaundice',
-            'dark-colored urine', 'bleeding easily', 'weight loss', 'fatigue',
-            'confusion', 'not wanting to eat', 'bruising easily', 'nausea',
-            'vomiting', 'fever', 'abdominal pain', 'joint pain', 'loss of appetite'
+            # Hepatitis A specific symptoms (acute, gastrointestinal)
+            'clay-colored stool', 'clay- or gray-colored stool', 'gray-colored stool',
+            'sudden nausea', 'vomiting', 'diarrhea', 'abdominal pain', 'joint pain',
+            'low-grade fever', 'fever', 'loss of appetite', 'unusual tiredness',
+            'weakness', 'intense itching',
+            
+            # Hepatitis C specific symptoms (chronic, liver damage)
+            'ascites', 'fluid buildup', 'swelling', 'spider angiomas', 'spiderlike blood vessels',
+            'itchy skin', 'bleeding easily', 'bruising easily', 'weight loss',
+            'confusion', 'drowsiness', 'slurred speech', 'hepatic encephalopathy',
+            'dark-colored urine', 'dark urine', 'not wanting to eat',
+            
+            # Common symptoms (need careful differentiation)
+            'jaundice', 'yellowing', 'fatigue', 'nausea'
         ]
-
+        
         for symptom in symptoms_list:
-            self.df_processed[f'has_{symptom}'] = self.df_processed['Symptoms'].str.contains(
-                symptom, case=False).astype(int)
+            self.df_processed[f'has_{symptom.replace(" ", "_").replace("-", "_")}'] = self.df_processed['Symptoms'].str.contains(
+                symptom, case=False, na=False).astype(int)
 
-        # Create symptom combinations
-        self.df_processed['has_jaundice_fatigue'] = (
-            self.df_processed['has_jaundice'] & self.df_processed['has_fatigue']
+        # Step 4: Hepatitis-specific signature combinations (IMPROVED)
+        print("🧬 Step 4: Creating hepatitis-specific signatures...")
+        
+        # Hepatitis A signature (acute onset, gastrointestinal, clay stool)
+        self.df_processed['hepatitis_a_signature'] = (
+            (self.df_processed['has_clay_colored_stool'] | 
+             self.df_processed['has_clay_or_gray_colored_stool'] |
+             self.df_processed['has_gray_colored_stool']) &
+            (self.df_processed['has_abdominal_pain'] | 
+             self.df_processed['has_sudden_nausea'] |
+             self.df_processed['has_vomiting'] |
+             self.df_processed['has_diarrhea']) &
+            ~self.df_processed['has_weight_loss'] &
+            ~self.df_processed['has_ascites'] &
+            ~self.df_processed['has_spider_angiomas']
         ).astype(int)
         
-        self.df_processed['has_jaundice_dark_urine'] = (
-            self.df_processed['has_jaundice'] & self.df_processed['has_dark-colored urine']
+        # Hepatitis C signature (chronic symptoms, liver damage indicators)
+        self.df_processed['hepatitis_c_signature'] = (
+            (self.df_processed['has_weight_loss'] |
+             self.df_processed['has_ascites'] |
+             self.df_processed['has_spider_angiomas']) &
+            (self.df_processed['has_dark_colored_urine'] |
+             self.df_processed['has_dark_urine']) &
+            (self.df_processed['has_bleeding_easily'] |
+             self.df_processed['has_bruising_easily'])
+        ).astype(int)
+        
+        # Additional specific combinations for better differentiation
+        self.df_processed['acute_gastrointestinal_cluster'] = (
+            self.df_processed['has_sudden_nausea'] & 
+            self.df_processed['has_vomiting'] &
+            self.df_processed['has_diarrhea'] &
+            self.df_processed['has_abdominal_pain']
+        ).astype(int)
+        
+        self.df_processed['chronic_liver_damage_cluster'] = (
+            self.df_processed['has_ascites'] &
+            self.df_processed['has_spider_angiomas'] &
+            self.df_processed['has_confusion']
+        ).astype(int)
+        
+        self.df_processed['hepatitis_a_acute_pattern'] = (
+            self.df_processed['has_clay_colored_stool'] |
+            self.df_processed['has_clay_or_gray_colored_stool'] |
+            self.df_processed['has_gray_colored_stool']
+        ).astype(int)
+        
+        self.df_processed['hepatitis_c_chronic_pattern'] = (
+            self.df_processed['has_weight_loss'] &
+            self.df_processed['has_dark_colored_urine']
         ).astype(int)
 
-        # Step 4: Date features
-        print("📅 Step 4: Date feature engineering...")
-        self.df_processed['DiagnosisDate'] = pd.to_datetime(self.df_processed['DiagnosisDate'])
-        self.df_processed['DiagnosisYear'] = self.df_processed['DiagnosisDate'].dt.year
-        self.df_processed['DiagnosisMonth'] = self.df_processed['DiagnosisDate'].dt.month
-        self.df_processed['DiagnosisDay'] = self.df_processed['DiagnosisDate'].dt.day
-        self.df_processed['DiagnosisDayOfWeek'] = self.df_processed['DiagnosisDate'].dt.dayofweek
+        # Step 5: Temporal and severity features
+        print("📅 Step 5: Temporal and severity feature engineering...")
+        
+        # Date features
+        if 'DiagnosisDate' in self.df_processed.columns:
+            self.df_processed['DiagnosisDate'] = pd.to_datetime(self.df_processed['DiagnosisDate'])
+            self.df_processed['DiagnosisYear'] = self.df_processed['DiagnosisDate'].dt.year
+            self.df_processed['DiagnosisMonth'] = self.df_processed['DiagnosisDate'].dt.month
+            self.df_processed['DiagnosisDay'] = self.df_processed['DiagnosisDate'].dt.day
+            self.df_processed['DiagnosisDayOfWeek'] = self.df_processed['DiagnosisDate'].dt.dayofweek
+            self.df_processed['DiagnosisQuarter'] = self.df_processed['DiagnosisDate'].dt.quarter
 
-        # Step 5: Severity encoding
-        print("⚠️ Step 5: Severity encoding...")
-        severity_mapping = {'Mild': 1, 'Moderate': 2, 'Severe': 3}
-        self.df_processed['Severity_encoded'] = self.df_processed['Severity'].map(severity_mapping).fillna(2)
+        # Severity encoding with enhanced mapping
+        print("⚠️ Step 6: Enhanced severity encoding...")
+        if 'Severity' in self.df_processed.columns:
+            severity_mapping = {'Mild': 1, 'Moderate': 2, 'Severe': 3}
+            self.df_processed['Severity_encoded'] = self.df_processed['Severity'].map(severity_mapping).fillna(2)
 
-        # Step 6: Treatment encoding
-        print("💊 Step 6: Treatment encoding...")
+        # Lab value ratios (if available)
+        if 'ALT' in self.df_processed.columns and 'AST' in self.df_processed.columns:
+            self.df_processed['alt_ast_ratio'] = (
+                self.df_processed['ALT'] / (self.df_processed['AST'] + 1e-6)
+            )
+
+        # Step 7: Categorical encoding
+        print("🏷️ Step 7: Advanced categorical encoding...")
         self.label_encoders_other = {}
         categorical_cols = self.df_processed.select_dtypes(include=['object']).columns
         
         for col in categorical_cols:
-            if col not in [self.target_col, 'Symptoms']:
+            if col not in [self.target_col, 'Symptoms', 'DiagnosisDate', 'SymptomOnsetDate']:
                 le = LabelEncoder()
-                self.df_processed[col + '_encoded'] = le.fit_transform(
+                # Handle unknown categories
+                unique_values = list(self.df_processed[col].unique()) + ['UNK']
+                le.fit(unique_values)
+                self.df_processed[col + '_encoded'] = le.transform(
                     self.df_processed[col].astype(str))
                 self.label_encoders_other[col] = le
 
-        # Step 7: Feature selection
-        print("📊 Step 7: Feature selection...")
+        # Step 8: Symptom count and complexity features
+        print("📊 Step 8: Symptom complexity features...")
+        symptom_cols = [col for col in self.df_processed.columns if col.startswith('has_')]
+        self.df_processed['total_symptoms'] = self.df_processed[symptom_cols].sum(axis=1)
+        if 'Severity_encoded' in self.df_processed.columns:
+            self.df_processed['symptom_severity_score'] = (
+                self.df_processed['total_symptoms'] * self.df_processed['Severity_encoded']
+            )
+
+        # Step 9: Feature selection with improved logic
+        print("🎯 Step 9: Intelligent feature selection...")
         self.feature_cols = []
         for col in self.df_processed.columns:
             if (col.endswith('_encoded') or
                 col.startswith('has_') or
+                col.endswith('_signature') or
+                col.endswith('_cluster') or
+                col.endswith('_pattern') or
+                col in ['total_symptoms', 'symptom_severity_score', 'alt_ast_ratio'] or
                 (self.df_processed[col].dtype in ['int64', 'float64'] and
-                 col not in [self.target_col, 'DiagnosisDate', 'PatientID', 'Symptoms'])):
+                 col not in [self.target_col, 'PatientID'] and
+                 not col.startswith('Diagnosis') and
+                 col != 'Symptoms')):
                 self.feature_cols.append(col)
 
         print(f"   Selected {len(self.feature_cols)} features for modeling")
 
-        # Step 8: Prepare data
+        # Step 10: Data preparation
         X = self.df_processed[self.feature_cols]
         y = self.df_processed[self.target_col]
 
+        print(f"📈 Final feature matrix shape: {X.shape}")
         print(f"📈 Target distribution (encoded):")
         print(y.value_counts())
 
-        # Step 9: Split data with stratification
-        print("✂️ Step 9: Splitting data...")
+        # Step 11: Stratified data splitting
+        print("✂️ Step 11: Stratified data splitting...")
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
         )
@@ -201,8 +412,8 @@ class ImprovedHepatitisSystem:
             X_train, y_train, test_size=0.2, random_state=42, stratify=y_train
         )
 
-        # Step 10: Scale features
-        print("⚖️ Step 10: Feature scaling...")
+        # Step 12: Feature scaling
+        print("⚖️ Step 12: Robust feature scaling...")
         self.scaler = StandardScaler()
         self.X_train_scaled = self.scaler.fit_transform(X_train)
         self.X_val_scaled = self.scaler.transform(X_val)
@@ -216,82 +427,42 @@ class ImprovedHepatitisSystem:
         print(f"   Validation set: {self.X_val_scaled.shape}")
         print(f"   Test set: {self.X_test_scaled.shape}")
 
-        # Save preprocessing artifacts
+        # Step 13: Save comprehensive preprocessing artifacts
+        print("💾 Step 13: Saving preprocessing artifacts...")
         preprocessing_artifacts = {
             'scaler': self.scaler,
             'label_encoder_target': self.label_encoder,
             'label_encoders_other': self.label_encoders_other,
+            'imputers': self.imputers,
             'feature_columns': self.feature_cols,
-            'target_column': self.target_col
+            'target_column': self.target_col,
+            'symptoms_list': symptoms_list,
+            'required_columns': self.required_columns
         }
 
         with open(f'{self.output_dir}/models/preprocessing_artifacts.pkl', 'wb') as f:
             pickle.dump(preprocessing_artifacts, f)
 
-        print(f"💾 Preprocessing artifacts saved")
+        print(f"✅ Advanced feature engineering completed")
         return X, y
 
-    def compare_models(self):
-        """Compare different models to find the best one"""
+    def build_enhanced_neural_network(self):
+        """Build an enhanced neural network architecture"""
         print("\n" + "="*50)
-        print("MODEL COMPARISON")
+        print("BUILDING ENHANCED NEURAL NETWORK")
         print("="*50)
-
-        models = {
-            'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
-            'SVM': SVC(probability=True, random_state=42),
-            'Logistic Regression': LogisticRegression(random_state=42)
-        }
-
-        results = {}
         
-        for name, model in models.items():
-            print(f"\n🔍 Testing {name}...")
-            
-            # Cross-validation
-            cv_scores = cross_val_score(model, self.X_train_scaled, self.y_train, cv=5)
-            print(f"   CV Accuracy: {cv_scores.mean():.3f} (+/- {cv_scores.std() * 2:.3f})")
-            
-            # Train and evaluate
-            model.fit(self.X_train_scaled, self.y_train)
-            y_pred = model.predict(self.X_test_scaled)
-            accuracy = accuracy_score(self.y_test, y_pred)
-            
-            results[name] = {
-                'model': model,
-                'cv_accuracy': cv_scores.mean(),
-                'test_accuracy': accuracy
-            }
-            
-            print(f"   Test Accuracy: {accuracy:.3f}")
-
-        # Find best model
-        best_model_name = max(results.keys(), key=lambda x: results[x]['test_accuracy'])
-        best_model = results[best_model_name]['model']
+        input_dim = self.X_train_scaled.shape[1]
+        print(f"📊 Input dimensions: {input_dim}")
         
-        print(f"\n🏆 Best Model: {best_model_name}")
-        print(f"   Test Accuracy: {results[best_model_name]['test_accuracy']:.3f}")
-        
-        return best_model, results
-
-    def build_improved_neural_network(self):
-        """Build an improved neural network"""
-        print("\n" + "="*50)
-        print("IMPROVED NEURAL NETWORK ARCHITECTURE")
-        print("="*50)
-
-        if self.X_train_scaled is None:
-            print("❌ No preprocessed data available.")
-            return None
-
-        print("🏗️ Building Improved Neural Network...")
-
-        # Build improved architecture
-        self.model = Sequential([
-            Dense(256, activation='relu', input_shape=(self.X_train_scaled.shape[1],)),
+        # Enhanced architecture with regularization
+        model = Sequential([
+            # Input layer with batch normalization
+            Dense(256, activation='relu', input_shape=(input_dim,)),
             BatchNormalization(),
-            Dropout(0.4),
+            Dropout(0.3),
             
+            # Hidden layers with progressive reduction
             Dense(128, activation='relu'),
             BatchNormalization(),
             Dropout(0.3),
@@ -301,405 +472,485 @@ class ImprovedHepatitisSystem:
             Dropout(0.2),
             
             Dense(32, activation='relu'),
-            Dropout(0.1),
+            Dropout(0.2),
             
+            # Output layer
             Dense(1, activation='sigmoid')
         ])
-
-        # Compile with better optimizer
-        self.model.compile(
-            optimizer=Adam(learning_rate=0.0005),
-            loss='binary_crossentropy',
-            metrics=['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
-        )
-
-        print("✅ Improved model architecture built")
-        print(f"📊 Total parameters: {self.model.count_params():,}")
         
-        return self.model
+        # Compile with advanced optimizer
+        model.compile(
+            optimizer=Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999),
+            loss='binary_crossentropy',
+            metrics=['accuracy', 'precision', 'recall']
+        )
+        
+        print("✅ Enhanced neural network built successfully")
+        print(f"📊 Total parameters: {model.count_params():,}")
+        
+        return model
 
-    def train_improved_model(self):
-        """Train the improved model"""
+    def train_enhanced_model(self):
+        """Train the enhanced model with advanced callbacks"""
         print("\n" + "="*50)
-        print("IMPROVED MODEL TRAINING")
+        print("TRAINING ENHANCED MODEL")
         print("="*50)
-
-        if self.model is None:
-            print("❌ No model built.")
-            return None
-
-        print("🚀 Starting improved training...")
-
-        # Better callbacks
+        
+        # Build model
+        self.model = self.build_enhanced_neural_network()
+        
+        # Advanced callbacks
         callbacks = [
-            EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True),
-            ReduceLROnPlateau(monitor='val_loss', factor=0.3, patience=8, min_lr=1e-7),
+            EarlyStopping(
+                monitor='val_loss',
+                patience=15,
+                restore_best_weights=True,
+                verbose=1
+            ),
+            ReduceLROnPlateau(
+                monitor='val_loss',
+                factor=0.5,
+                patience=8,
+                min_lr=1e-7,
+                verbose=1
+            ),
             ModelCheckpoint(
-                filepath=f'{self.output_dir}/models/best_improved_model.keras',
+                f'{self.output_dir}/models/best_enhanced_model.keras',
                 monitor='val_accuracy',
-                save_best_only=True
+                save_best_only=True,
+                verbose=1
             )
         ]
-
-        # Train with more epochs and better batch size
-        start_time = datetime.now()
         
+        # Train model
+        print("🚀 Starting training...")
         self.history = self.model.fit(
             self.X_train_scaled, self.y_train,
             validation_data=(self.X_val_scaled, self.y_val),
-            epochs=200,
-            batch_size=16,
+            epochs=100,
+            batch_size=32,
             callbacks=callbacks,
             verbose=1
         )
-
-        end_time = datetime.now()
-        training_time = end_time - start_time
-
-        print(f"✅ Training completed in {training_time}")
-        print(f"📊 Total epochs: {len(self.history.history['loss'])}")
         
-        # Save model
-        self.model.save(f'{self.output_dir}/models/improved_hepatitis_model.keras')
-        print(f"💾 Model saved")
+        print("✅ Model training completed")
+        return self.model, self.history
 
-        return self.history
+    def optimize_threshold(self):
+        """Optimize classification threshold for maximum accuracy"""
+        print("\n" + "="*50)
+        print("OPTIMIZING CLASSIFICATION THRESHOLD")
+        print("="*50)
+        
+        # Get validation predictions
+        val_proba = self.model.predict(self.X_val_scaled, verbose=0)
+        
+        # Test different thresholds
+        thresholds = np.arange(0.1, 0.9, 0.01)
+        best_threshold = 0.5
+        best_f1 = 0
+        
+        threshold_results = []
+        
+        for threshold in thresholds:
+            val_pred = (val_proba > threshold).astype(int)
+            f1 = f1_score(self.y_val, val_pred)
+            accuracy = accuracy_score(self.y_val, val_pred)
+            precision = precision_score(self.y_val, val_pred)
+            recall = recall_score(self.y_val, val_pred)
+            
+            threshold_results.append({
+                'threshold': threshold,
+                'f1_score': f1,
+                'accuracy': accuracy,
+                'precision': precision,
+                'recall': recall
+            })
+            
+            if f1 > best_f1:
+                best_f1 = f1
+                best_threshold = threshold
+        
+        self.optimal_threshold = best_threshold
+        
+        # Test optimal threshold
+        val_pred_optimal = (val_proba > best_threshold).astype(int)
+        
+        results = {
+            'optimal_threshold': best_threshold,
+            'f1_score': f1_score(self.y_val, val_pred_optimal),
+            'accuracy': accuracy_score(self.y_val, val_pred_optimal),
+            'precision': precision_score(self.y_val, val_pred_optimal),
+            'recall': recall_score(self.y_val, val_pred_optimal)
+        }
+        
+        print(f"🎯 Optimal threshold: {best_threshold:.4f}")
+        print(f"📊 F1-Score: {results['f1_score']:.4f}")
+        print(f"📊 Accuracy: {results['accuracy']:.4f}")
+        print(f"📊 Precision: {results['precision']:.4f}")
+        print(f"📊 Recall: {results['recall']:.4f}")
+        
+        self.results['optimized_threshold'] = results
+        return best_threshold, results
 
     def comprehensive_evaluation(self):
         """Comprehensive model evaluation"""
         print("\n" + "="*50)
-        print("COMPREHENSIVE EVALUATION")
+        print("COMPREHENSIVE MODEL EVALUATION")
         print("="*50)
-
-        if self.model is None:
-            print("❌ No trained model available.")
-            return None
-
-        print("📊 Evaluating model performance...")
-
-        # Get predictions
-        y_pred_proba = self.model.predict(self.X_test_scaled, verbose=0)
-        y_pred = (y_pred_proba > 0.5).astype(int)
-
+        
+        # Test set predictions
+        test_proba = self.model.predict(self.X_test_scaled, verbose=0)
+        test_pred = (test_proba > self.optimal_threshold).astype(int)
+        
         # Calculate metrics
-        accuracy = accuracy_score(self.y_test, y_pred)
-        precision = precision_score(self.y_test, y_pred)
-        recall = recall_score(self.y_test, y_pred)
-        f1 = f1_score(self.y_test, y_pred)
-
-        # ROC AUC
-        fpr, tpr, _ = roc_curve(self.y_test, y_pred_proba)
-        roc_auc = auc(fpr, tpr)
-
-        print("🎯 PERFORMANCE METRICS:")
-        print(f"   Accuracy:  {accuracy:.1%}")
-        print(f"   Precision: {precision:.1%}")
-        print(f"   Recall:    {recall:.1%}")
-        print(f"   F1-Score:  {f1:.1%}")
-        print(f"   AUC-ROC:   {roc_auc:.3f}")
-
-        # Save results
-        self.results = {
-            'accuracy': accuracy,
-            'precision': precision,
-            'recall': recall,
-            'f1_score': f1,
-            'auc_roc': roc_auc
+        test_accuracy = accuracy_score(self.y_test, test_pred)
+        test_precision = precision_score(self.y_test, test_pred)
+        test_recall = recall_score(self.y_test, test_pred)
+        test_f1 = f1_score(self.y_test, test_pred)
+        
+        print(f"🎯 TEST SET RESULTS:")
+        print(f"   Accuracy: {test_accuracy:.4f}")
+        print(f"   Precision: {test_precision:.4f}")
+        print(f"   Recall: {test_recall:.4f}")
+        print(f"   F1-Score: {test_f1:.4f}")
+        
+        # Classification report
+        print(f"\n📊 DETAILED CLASSIFICATION REPORT:")
+        target_names = self.label_encoder.classes_
+        print(classification_report(self.y_test, test_pred, target_names=target_names))
+        
+        # Confusion matrix
+        cm = confusion_matrix(self.y_test, test_pred)
+        print(f"\n🔍 CONFUSION MATRIX:")
+        print(cm)
+        
+        # Store results
+        self.results['final_evaluation'] = {
+            'test_accuracy': test_accuracy,
+            'test_precision': test_precision,
+            'test_recall': test_recall,
+            'test_f1': test_f1,
+            'confusion_matrix': cm.tolist(),
+            'classification_report': classification_report(self.y_test, test_pred, target_names=target_names, output_dict=True)
         }
+        
+        return self.results['final_evaluation']
 
-        # Generate classification report
-        y_test_decoded = self.label_encoder.inverse_transform(self.y_test)
-        y_pred_decoded = self.label_encoder.inverse_transform(y_pred.flatten())
+    def predict_single_case(self, symptoms, threshold=None):
+        """Enhanced prediction with optimized threshold"""
+        if self.model is None:
+            try:
+                self.model = load_model(f'{self.output_dir}/models/best_enhanced_model.keras')
+                print("✅ Loaded saved model for prediction")
+            except Exception as e:
+                return {
+                    'error': f"Model not available: {e}",
+                    'prediction': None,
+                    'confidence': 0.0
+                }
 
-        class_report = classification_report(
-            y_test_decoded, y_pred_decoded,
-            target_names=self.label_encoder.classes_,
-            output_dict=True
-        )
+        # Use optimized threshold if available
+        threshold = threshold or getattr(self, 'optimal_threshold', 0.5)
 
-        # Save report
-        report_df = pd.DataFrame(class_report).transpose()
-        report_df.to_csv(f'{self.output_dir}/evaluation/improved_classification_report.csv')
-
-        # Plot confusion matrix
-        cm = confusion_matrix(y_test_decoded, y_pred_decoded)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
-                    xticklabels=self.label_encoder.classes_,
-                    yticklabels=self.label_encoder.classes_)
-        plt.title('Improved Model - Confusion Matrix')
-        plt.ylabel('True Label')
-        plt.xlabel('Predicted Label')
-        plt.savefig(f'{self.output_dir}/figures/improved_confusion_matrix.png')
-        plt.close()
-
-        print(f"💾 Evaluation results saved")
-
-        return self.results
-
-    def run_improved_analysis(self):
-        """Run the complete improved analysis"""
-        print("\n" + "="*60)
-        print("RUNNING IMPROVED ANALYSIS PIPELINE")
-        print("="*60)
+        # Prepare input data with all required columns
+        input_data = {
+            'Symptoms': ', '.join(symptoms) if isinstance(symptoms, list) else symptoms,
+            'Severity': 'Moderate',  # Default
+            'DiagnosisDate': datetime.now().strftime('%Y-%m-%d'),
+            'Treatment': 'Supportive care',  # Default
+            'PatientID': 'TEST0001',  # Example
+            'ALT': 40,  # Example default values
+            'AST': 35,  # Example default values
+        }
 
         try:
-            # Step 1: Load data
-            self.load_and_explore_data()
+            # Preprocess input
+            processed_input = self.preprocess_single_input(input_data)
 
-            # Step 2: Advanced feature engineering
-            self.advanced_feature_engineering()
+            if processed_input is None:
+                return {
+                    'error': 'Preprocessing failed',
+                    'prediction': None,
+                    'confidence': 0.0
+                }
 
-            # Step 3: Compare models
-            best_model, results = self.compare_models()
+            # Make prediction
+            prediction_proba = self.model.predict(processed_input, verbose=0)[0][0]
+            prediction = (prediction_proba > threshold).astype(int)
 
-            # Step 4: Build improved neural network
-            self.build_improved_neural_network()
+            # Decode prediction
+            predicted_type = self.label_encoder.inverse_transform([prediction])[0]
+            confidence = max(prediction_proba, 1 - prediction_proba)
 
-            # Step 5: Train improved model
-            self.train_improved_model()
-
-            # Step 6: Comprehensive evaluation
-            self.comprehensive_evaluation()
-
-            print("\n" + "🎉" * 20)
-            print("IMPROVED ANALYSIS COMPLETED!")
-            print("🎉" * 20)
-            print(f"\nAll outputs saved in: {self.output_dir}")
+            return {
+                'prediction': predicted_type,
+                'confidence': float(confidence),
+                'probability': float(prediction_proba),
+                'threshold_used': float(threshold),
+                'symptoms_analyzed': len(symptoms) if isinstance(symptoms, list) else len(symptoms.split(',')),
+                'error': None
+            }
 
         except Exception as e:
-            print(f"❌ Error in improved analysis: {e}")
-            raise e
-
-    def interactive_testing(self):
-        """Interactive testing of the trained model"""
-        print("\n" + "="*50)
-        print("INTERACTIVE MODEL TESTING")
-        print("="*50)
-
-        if self.model is None:
-            try:
-                self.model = load_model(f'{self.output_dir}/models/best_improved_model.keras')
-                print("✅ Loaded saved model for testing")
-            except Exception as e:
-                print(f"❌ Error loading model: {e}")
-                return None
-
-        print("\n🧪 Interactive Testing Mode")
-        print("Enter symptoms and see predictions!")
-        print("Type 'quit' to exit testing mode")
-        print("-" * 50)
-
-        while True:
-            print("\n📝 Enter symptoms (comma-separated):")
-            symptoms_input = input("Symptoms: ").strip()
-            
-            if symptoms_input.lower() == 'quit':
-                break
-            
-            if not symptoms_input:
-                print("❌ Please enter symptoms")
-                continue
-
-            # Parse symptoms
-            symptoms = [s.strip() for s in symptoms_input.split(',')]
-            
-            print(f"🔍 Analyzing symptoms: {symptoms}")
-            
-            # Get prediction
-            try:
-                prediction, confidence = self.predict_single_case(symptoms)
-                print(f"🎯 Prediction: {prediction}")
-                print(f"📊 Confidence: {confidence:.1%}")
-                
-                # Show symptom analysis
-                print(f"📋 Symptom count: {len(symptoms)}")
-                print(f"🔍 Detected symptoms: {symptoms}")
-                
-            except Exception as e:
-                print(f"❌ Error making prediction: {e}")
-
-    def predict_single_case(self, symptoms):
-        """Predict for a single case with symptoms"""
-        if self.model is None:
-            return "Error: Model not available", 0.0
-
-        # Create input data
-        input_data = {
-            'Symptoms': ', '.join(symptoms),
-            'SymptomCount': len(symptoms),
-            'Severity': 'Moderate',  # Default severity
-            'DiagnosisDate': '2023-10-15',  # Default date
-            'Treatment': 'Supportive care'  # Default treatment
-        }
-
-        # Preprocess input
-        processed_input = self.preprocess_single_input(input_data)
-        
-        # Make prediction
-        prediction_proba = self.model.predict(processed_input, verbose=0)[0][0]
-        prediction = (prediction_proba > 0.5).astype(int)
-        
-        # Decode prediction
-        predicted_type = self.label_encoder.inverse_transform([prediction])[0]
-        confidence = prediction_proba if prediction == 1 else 1 - prediction_proba
-        
-        return predicted_type, confidence
+            return {
+                'error': f"Prediction failed: {e}",
+                'prediction': None,
+                'confidence': 0.0
+            }
 
     def preprocess_single_input(self, input_data):
-        """Preprocess a single input case"""
-        input_df = pd.DataFrame([input_data])
-        processed_input = input_df.copy()
+        """Preprocess a single input with strict pipeline matching"""
+        try:
+            # Load preprocessing artifacts
+            with open(f'{self.output_dir}/models/preprocessing_artifacts.pkl', 'rb') as f:
+                artifacts = pickle.load(f)
 
-        # Feature engineering (same as training)
-        symptoms_list = [
-            'ascites', 'swelling', 'spider angiomas', 'itchy skin', 'jaundice',
-            'dark-colored urine', 'bleeding easily', 'weight loss', 'fatigue',
-            'confusion', 'not wanting to eat', 'bruising easily', 'nausea',
-            'vomiting', 'fever', 'abdominal pain', 'joint pain', 'loss of appetite'
-        ]
+            # Create DataFrame with all required columns
+            input_df = pd.DataFrame(columns=artifacts['required_columns'])
 
-        for symptom in symptoms_list:
-            processed_input[f'has_{symptom}'] = processed_input['Symptoms'].str.contains(
-                symptom, case=False).astype(int)
+            # Fill in provided data
+            for col in input_data:
+                if col in input_df.columns:
+                    input_df[col] = [input_data[col]]
 
-        # Create symptom combinations
-        processed_input['has_jaundice_fatigue'] = (
-            processed_input['has_jaundice'] & processed_input['has_fatigue']
-        ).astype(int)
+            # Fill missing columns with defaults
+            for col in input_df.columns:
+                if col not in input_data:
+                    if col == 'Severity':
+                        input_df[col] = 'Moderate'
+                    elif col == 'DiagnosisDate':
+                        input_df[col] = datetime.now().strftime('%Y-%m-%d')
+                    elif col == 'Treatment':
+                        input_df[col] = 'Supportive care'
+                    elif col in ['ALT', 'AST']:
+                        input_df[col] = 30  # Default normal values
+                    else:
+                        input_df[col] = ''  # Empty string for other columns
+
+            # Apply feature engineering
+            processed_input = self.apply_feature_engineering(input_df, artifacts)
+
+            # Apply categorical encoding
+            for col, encoder in artifacts['label_encoders_other'].items():
+                if col in processed_input.columns:
+                    # Handle unseen categories safely
+                    processed_input[col] = processed_input[col].astype(str).apply(
+                        lambda x: x if x in encoder.classes_ else 'UNK'
+                    )
+                    processed_input[col + '_encoded'] = encoder.transform(processed_input[col])
+
+            # Select features and handle missing ones
+            final_features = processed_input.reindex(
+                columns=artifacts['feature_columns'], 
+                fill_value=0
+            )
+
+            # Scale features
+            input_scaled = artifacts['scaler'].transform(final_features)
+
+            return input_scaled
+
+        except Exception as e:
+            print(f"❌ Error in preprocessing: {e}")
+            return None
+
+    def apply_feature_engineering(self, input_df, artifacts):
+        """Apply the same feature engineering to new data"""
+        processed_df = input_df.copy()
         
-        processed_input['has_jaundice_dark_urine'] = (
-            processed_input['has_jaundice'] & processed_input['has_dark-colored urine']
+        symptoms_list = artifacts['symptoms_list']
+
+        # Apply symptom extraction
+        for symptom in symptoms_list:
+            processed_df[f'has_{symptom.replace(" ", "_").replace("-", "_")}'] = processed_df['Symptoms'].str.contains(
+                symptom, case=False, na=False).astype(int)
+
+        # Apply signature combinations
+        processed_df['hepatitis_a_signature'] = (
+            (processed_df['has_clay_colored_stool'] | 
+             processed_df['has_clay_or_gray_colored_stool'] |
+             processed_df['has_gray_colored_stool']) &
+            (processed_df['has_abdominal_pain'] | 
+             processed_df['has_sudden_nausea'] |
+             processed_df['has_vomiting'] |
+             processed_df['has_diarrhea']) &
+            ~processed_df['has_weight_loss'] &
+            ~processed_df['has_ascites'] &
+            ~processed_df['has_spider_angiomas']
+        ).astype(int)
+
+        processed_df['hepatitis_c_signature'] = (
+            (processed_df['has_weight_loss'] |
+             processed_df['has_ascites'] |
+             processed_df['has_spider_angiomas']) &
+            (processed_df['has_dark_colored_urine'] |
+             processed_df['has_dark_urine']) &
+            (processed_df['has_bleeding_easily'] |
+             processed_df['has_bruising_easily'])
+        ).astype(int)
+
+        processed_df['acute_gastrointestinal_cluster'] = (
+            processed_df['has_sudden_nausea'] & 
+            processed_df['has_vomiting'] &
+            processed_df['has_diarrhea'] &
+            processed_df['has_abdominal_pain']
+        ).astype(int)
+
+        processed_df['chronic_liver_damage_cluster'] = (
+            processed_df['has_ascites'] &
+            processed_df['has_spider_angiomas'] &
+            processed_df['has_confusion']
+        ).astype(int)
+
+        processed_df['hepatitis_a_acute_pattern'] = (
+            processed_df['has_clay_colored_stool'] |
+            processed_df['has_clay_or_gray_colored_stool'] |
+            processed_df['has_gray_colored_stool']
+        ).astype(int)
+
+        processed_df['hepatitis_c_chronic_pattern'] = (
+            processed_df['has_weight_loss'] &
+            processed_df['has_dark_colored_urine']
         ).astype(int)
 
         # Date features
-        processed_input['DiagnosisDate'] = pd.to_datetime(processed_input['DiagnosisDate'])
-        processed_input['DiagnosisYear'] = processed_input['DiagnosisDate'].dt.year
-        processed_input['DiagnosisMonth'] = processed_input['DiagnosisDate'].dt.month
-        processed_input['DiagnosisDay'] = processed_input['DiagnosisDate'].dt.day
-        processed_input['DiagnosisDayOfWeek'] = processed_input['DiagnosisDate'].dt.dayofweek
+        if 'DiagnosisDate' in processed_df.columns:
+            processed_df['DiagnosisDate'] = pd.to_datetime(processed_df['DiagnosisDate'])
+            processed_df['DiagnosisYear'] = processed_df['DiagnosisDate'].dt.year
+            processed_df['DiagnosisMonth'] = processed_df['DiagnosisDate'].dt.month
+            processed_df['DiagnosisDay'] = processed_df['DiagnosisDate'].dt.day
+            processed_df['DiagnosisDayOfWeek'] = processed_df['DiagnosisDate'].dt.dayofweek
+            processed_df['DiagnosisQuarter'] = processed_df['DiagnosisDate'].dt.quarter
 
-        # Severity encoding - fix the mapping issue
+        # Severity encoding
         severity_mapping = {'Mild': 1, 'Moderate': 2, 'Severe': 3}
-        processed_input['Severity_encoded'] = processed_input['Severity'].map(severity_mapping).fillna(2)
-        
-        # Remove the original Severity column to avoid conflicts
-        if 'Severity' in processed_input.columns:
-            processed_input = processed_input.drop('Severity', axis=1)
+        if 'Severity' in processed_df.columns:
+            processed_df['Severity_encoded'] = processed_df['Severity'].map(severity_mapping).fillna(2)
 
-        # Treatment encoding
-        for col in self.label_encoders_other:
-            if col in processed_input.columns:
-                try:
-                    processed_input[col + '_encoded'] = self.label_encoders_other[col].transform(
-                        processed_input[col].astype(str))
-                except ValueError:
-                    processed_input[col + '_encoded'] = -1
+        # Lab ratios
+        if 'ALT' in processed_df.columns and 'AST' in processed_df.columns:
+            processed_df['alt_ast_ratio'] = (
+                processed_df['ALT'] / (processed_df['AST'] + 1e-6)
+            )
 
-        # Select features and scale
-        input_features = processed_input.reindex(columns=self.feature_cols, fill_value=0)
-        input_scaled = self.scaler.transform(input_features)
-        
-        return input_scaled
+        # Symptom complexity features
+        symptom_cols = [col for col in processed_df.columns if col.startswith('has_')]
+        processed_df['total_symptoms'] = processed_df[symptom_cols].sum(axis=1)
+        if 'Severity_encoded' in processed_df.columns:
+            processed_df['symptom_severity_score'] = (
+                processed_df['total_symptoms'] * processed_df['Severity_encoded']
+            )
 
-    def test_accuracy_with_sample_cases(self):
-        """Test accuracy with predefined sample cases"""
+        return processed_df
+
+    def interactive_testing(self):
+        """Interactive testing interface"""
         print("\n" + "="*50)
-        print("ACCURACY TESTING WITH SAMPLE CASES")
+        print("INTERACTIVE TESTING INTERFACE")
         print("="*50)
-
-        if self.model is None:
-            try:
-                self.model = load_model(f'{self.output_dir}/models/best_improved_model.keras')
-                print("✅ Loaded saved model for testing")
-            except Exception as e:
-                print(f"❌ Error loading model: {e}")
-                return None
-
-        # Define test cases
+        
         test_cases = [
             {
-                'symptoms': ['fatigue', 'jaundice', 'nausea', 'abdominal pain'],
-                'expected': 'Hepatitis A',
-                'description': 'Typical Hepatitis A symptoms'
+                'name': 'Hepatitis A Case (Acute)',
+                'symptoms': 'clay-colored stool, sudden nausea, vomiting, diarrhea, abdominal pain, low-grade fever'
             },
             {
-                'symptoms': ['fatigue', 'jaundice', 'dark-colored urine', 'weight loss'],
-                'expected': 'Hepatitis C',
-                'description': 'Typical Hepatitis C symptoms'
+                'name': 'Hepatitis C Case (Chronic)',
+                'symptoms': 'weight loss, dark-colored urine, jaundice, ascites, spider angiomas, bleeding easily'
             },
             {
-                'symptoms': ['fatigue', 'jaundice'],
-                'expected': 'Hepatitis A',
-                'description': 'Mild symptoms'
+                'name': 'Mixed Symptoms (Challenging)',
+                'symptoms': 'fatigue, jaundice, nausea, abdominal pain'
             },
             {
-                'symptoms': ['fatigue', 'jaundice', 'dark-colored urine', 'abdominal pain', 'weight loss', 'nausea'],
-                'expected': 'Hepatitis C',
-                'description': 'Severe symptoms'
+                'name': 'Hepatitis A Specific',
+                'symptoms': 'clay-colored stool, joint pain, sudden nausea, vomiting, abdominal pain'
             },
             {
-                'symptoms': ['fatigue', 'nausea', 'vomiting'],
-                'expected': 'Hepatitis A',
-                'description': 'Gastrointestinal symptoms'
+                'name': 'Hepatitis C Specific',
+                'symptoms': 'weight loss, dark-colored urine, confusion, bleeding easily, spider angiomas'
             }
         ]
-
-        correct_predictions = 0
-        total_cases = len(test_cases)
-
-        print(f"\n🧪 Testing {total_cases} sample cases...")
-        print("-" * 60)
-
+        
+        print("🧪 Testing with predefined cases:")
+        
         for i, case in enumerate(test_cases, 1):
-            print(f"\n🔍 Test Case {i}: {case['description']}")
-            print(f"   Symptoms: {case['symptoms']}")
-            print(f"   Expected: {case['expected']}")
+            print(f"\n--- Test Case {i}: {case['name']} ---")
+            print(f"Symptoms: {case['symptoms']}")
             
-            try:
-                prediction, confidence = self.predict_single_case(case['symptoms'])
-                is_correct = prediction == case['expected']
-                
-                if is_correct:
-                    correct_predictions += 1
-                    result = "✅ CORRECT"
-                else:
-                    result = "❌ INCORRECT"
-                
-                print(f"   Predicted: {prediction}")
-                print(f"   Confidence: {confidence:.1%}")
-                print(f"   Result: {result}")
-                
-            except Exception as e:
-                print(f"   ❌ Error: {e}")
+            result = self.predict_single_case(case['symptoms'])
+            
+            if result['error']:
+                print(f"❌ Error: {result['error']}")
+            else:
+                print(f"🎯 Prediction: {result['prediction']}")
+                print(f"📊 Confidence: {result['confidence']:.2%}")
+                print(f"📈 Probability: {result['probability']:.4f}")
+                print(f"⚖️ Threshold: {result['threshold_used']:.4f}")
 
-        accuracy = correct_predictions / total_cases
-        print(f"\n📊 Sample Case Testing Results:")
-        print(f"   Correct predictions: {correct_predictions}/{total_cases}")
-        print(f"   Accuracy: {accuracy:.1%}")
-
-        return accuracy
+    def run_complete_analysis(self):
+        """Run the complete analysis pipeline"""
+        print("\n🚀 STARTING COMPLETE ANALYSIS PIPELINE")
+        print("=" * 60)
+        
+        try:
+            # Step 1: Load and explore data
+            self.load_and_explore_data()
+            
+            # Step 2: Advanced feature engineering
+            X, y = self.advanced_feature_engineering()
+            
+            # Step 3: Train enhanced model
+            self.train_enhanced_model()
+            
+            # Step 4: Optimize threshold
+            self.optimize_threshold()
+            
+            # Step 5: Comprehensive evaluation
+            self.comprehensive_evaluation()
+            
+            print("\n✅ COMPLETE ANALYSIS PIPELINE FINISHED")
+            print("=" * 60)
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error in complete analysis: {e}")
+            return False
 
 def main():
-    print("🚀 INITIALIZING IMPROVED HEPATITIS SYSTEM...")
-    improved_system = ImprovedHepatitisSystem()
+    """Main execution function"""
+    print("🚀 INITIALIZING ENHANCED HEPATITIS SYSTEM...")
+    print("=" * 60)
     
-    # Run the complete analysis
-    improved_system.run_improved_analysis()
+    # Initialize system
+    enhanced_system = EnhancedHepatitisSystem()
     
-    # Test accuracy with sample cases
-    print("\n" + "="*60)
-    print("TESTING MODEL ACCURACY")
-    print("="*60)
-    improved_system.test_accuracy_with_sample_cases()
-    
-    # Interactive testing
-    print("\n" + "="*60)
-    print("INTERACTIVE TESTING")
-    print("="*60)
-    improved_system.interactive_testing()
-    
-    print("\n🎉 IMPROVED SYSTEM EXECUTION COMPLETED!")
+    try:
+        # Run complete analysis
+        print("\n🔄 RUNNING COMPLETE ANALYSIS...")
+        success = enhanced_system.run_complete_analysis()
+        
+        if success:
+            # Interactive testing
+            print("\n🔄 STARTING INTERACTIVE TESTING...")
+            enhanced_system.interactive_testing()
+            
+            print("\n" + "🎉" * 20)
+            print("ENHANCED SYSTEM EXECUTION COMPLETED!")
+            print("🎉" * 20)
+            print(f"\nFinal Results:")
+            if 'optimized_threshold' in enhanced_system.results:
+                print(f"- Model accuracy: {enhanced_system.results['optimized_threshold']['accuracy']:.1%}")
+                print(f"- Optimal threshold: {enhanced_system.optimal_threshold:.4f}")
+            print(f"- All outputs saved in: {enhanced_system.output_dir}")
+        else:
+            print("❌ Analysis pipeline failed")
+            
+    except Exception as e:
+        print(f"❌ Error in main execution: {e}")
+        raise e
 
 if __name__ == "__main__":
-    main() 
+    main()

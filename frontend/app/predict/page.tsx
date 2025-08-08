@@ -64,6 +64,7 @@ type PredictionResult = {
       predicted_class: string;
       "probability_Hepatitis A": number;
       "probability_Hepatitis C": number;
+      confidence?: number;
     }>;
     total_predictions: number;
   };
@@ -165,8 +166,8 @@ export default function PredictionSelector() {
           symptoms: {
             jaundice: userData.symptoms.jaundice,
             dark_urine: userData.symptoms.darkUrine,
-            pain: userData.symptoms.abdominalPain > 0,
-            fatigue: userData.symptoms.fatigue > 0,
+            pain: userData.symptoms.abdominalPain,  // Keep as numeric value
+            fatigue: userData.symptoms.fatigue,     // Keep as numeric value
             nausea: userData.symptoms.nausea,
             vomiting: false, // Add if needed
             fever: userData.symptoms.fever,
@@ -892,6 +893,15 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                           <Badge className="text-lg px-6 py-2 bg-blue-600 text-white">
                             {pred.predicted_class}
                           </Badge>
+                          {/* Add confidence display */}
+                          <div className="mt-3">
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Confidence: {Math.round((pred.confidence || Math.max(pred["probability_Hepatitis A"], pred["probability_Hepatitis C"])) * 100)}%
+                              </span>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="grid gap-6 md:grid-cols-2">

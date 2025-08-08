@@ -36,7 +36,24 @@ def create_prediction_data(user_data):
     symptoms_text = create_symptoms_text(symptoms)
     
     # Determine severity based on symptoms and age
-    age = int(user_data['age'])
+    # Convert age string to numeric value
+    age_str = user_data['age']
+    if isinstance(age_str, str):
+        if age_str == "under18":
+            age = 17
+        elif age_str == "18-30":
+            age = 24
+        elif age_str == "31-45":
+            age = 38
+        elif age_str == "46-60":
+            age = 53
+        elif age_str == "over60":
+            age = 65
+        else:
+            age = 30  # Default age
+    else:
+        age = int(age_str)
+    
     severity = 'Mild'  # Default mild
     if symptom_count >= 5 or age > 60:
         severity = 'Severe'
@@ -142,6 +159,10 @@ def preprocess_input_for_improved_model(input_data, preprocessing_artifacts_path
     # Severity encoding
     severity_mapping = {'Mild': 1, 'Moderate': 2, 'Severe': 3}
     processed_input['Severity_encoded'] = processed_input['Severity'].map(severity_mapping).fillna(2)
+    
+    # Remove the original Severity column to avoid conflicts
+    if 'Severity' in processed_input.columns:
+        processed_input = processed_input.drop('Severity', axis=1)
 
     # Treatment encoding
     for col in label_encoders_other:
@@ -185,7 +206,9 @@ def predict_with_improved_model(
     
     # Decode prediction
     predicted_type = label_encoder.inverse_transform([prediction])[0]
-    confidence = prediction_proba if prediction == 1 else 1 - prediction_proba
+    
+    # FIXED: Calculate confidence as the maximum probability between the two classes
+    confidence = max(prediction_proba, 1 - prediction_proba)
     
     # Create results
     results = {

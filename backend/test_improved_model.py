@@ -15,7 +15,7 @@ def test_improved_prediction():
     
     # Test case 1: Typical Hepatitis A symptoms
     test_case_1 = {
-        'age': 35,
+        'age': '31-45',  # Fixed: use string age
         'gender': 'Male',
         'symptoms': {
             'jaundice': True,
@@ -23,7 +23,7 @@ def test_improved_prediction():
             'nausea': True,
             'vomiting': False,
             'fever': True,
-            'pain': True,
+            'pain': True,  # Fixed: use boolean
             'dark_urine': False,
             'loss_of_appetite': True,
             'joint_pain': False
@@ -39,7 +39,7 @@ def test_improved_prediction():
     
     # Test case 2: Typical Hepatitis C symptoms
     test_case_2 = {
-        'age': 45,
+        'age': '46-60',  # Fixed: use string age
         'gender': 'Female',
         'symptoms': {
             'jaundice': True,
@@ -47,7 +47,7 @@ def test_improved_prediction():
             'nausea': True,
             'vomiting': True,
             'fever': False,
-            'pain': True,
+            'pain': True,  # Fixed: use boolean
             'dark_urine': True,
             'loss_of_appetite': True,
             'joint_pain': True

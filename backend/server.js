@@ -10,7 +10,21 @@ import fetch from "node-fetch"
 import dotenv from "dotenv"
 import connectDB from "./config/db.js"
 import { register, login, getMe, updateProfile, changePassword, logout } from "./routes/auth.js"
-import { protect } from "./middleware/auth.js"
+import { protect, authorize } from "./middleware/auth.js"
+import {
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  getAllPredictions,
+  getPredictionById,
+  updatePrediction,
+  deletePrediction,
+  getDashboardStats
+} from "./routes/admin.js"
+import Prediction from "./models/Prediction.js"
+import User from "./models/User.js"
 
 // Load env vars
 dotenv.config()
@@ -53,8 +67,6 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true })
 }
 
-
-
 // Auth Routes
 app.post("/api/auth/register", register)
 app.post("/api/auth/login", login)
@@ -62,6 +74,18 @@ app.get("/api/auth/me", protect, getMe)
 app.put("/api/auth/profile", protect, updateProfile)
 app.put("/api/auth/change-password", protect, changePassword)
 app.post("/api/auth/logout", protect, logout)
+
+// Admin Routes
+app.get("/api/admin/dashboard", protect, authorize('admin'), getDashboardStats)
+app.get("/api/admin/users", protect, authorize('admin'), getAllUsers)
+app.get("/api/admin/users/:id", protect, authorize('admin'), getUserById)
+app.post("/api/admin/users", protect, authorize('admin'), createUser)
+app.put("/api/admin/users/:id", protect, authorize('admin'), updateUser)
+app.delete("/api/admin/users/:id", protect, authorize('admin'), deleteUser)
+app.get("/api/admin/predictions", protect, authorize('admin'), getAllPredictions)
+app.get("/api/admin/predictions/:id", protect, authorize('admin'), getPredictionById)
+app.put("/api/admin/predictions/:id", protect, authorize('admin'), updatePrediction)
+app.delete("/api/admin/predictions/:id", protect, authorize('admin'), deletePrediction)
 
 // API Routes
 app.get("/api/status", (req, res) => {
@@ -162,7 +186,7 @@ app.get("/api/visualization/:filename", (req, res) => {
 })
 
 // Route to handle prediction
-app.post("/api/predict", async (req, res) => {
+app.post("/api/predict", protect, async (req, res) => {
   try {
     const { age, gender, symptoms, riskFactors } = req.body
 
@@ -175,13 +199,51 @@ app.post("/api/predict", async (req, res) => {
     }
 
     // Use improved model prediction
-    const prediction = await performImprovedPrediction(age, gender, symptoms, riskFactors)
+    const predictionResult = await performImprovedPrediction(age, gender, symptoms, riskFactors)
+    
+    // Extract prediction data from the result
+    const predictionData = predictionResult.prediction?.predictions?.[0] || predictionResult
+    
+    // Create prediction record in database
+    const prediction = new Prediction({
+      user: req.user._id,
+      age,
+      gender,
+      symptoms: {
+        jaundice: symptoms?.jaundice || false,
+        dark_urine: symptoms?.dark_urine || false,
+        pain: symptoms?.pain || 0,
+        fatigue: symptoms?.fatigue || 0,
+        nausea: symptoms?.nausea || false,
+        vomiting: symptoms?.vomiting || false,
+        fever: symptoms?.fever || false,
+        loss_of_appetite: symptoms?.loss_of_appetite || false,
+        joint_pain: symptoms?.joint_pain || false
+      },
+      riskFactors: riskFactors || [],
+      prediction: {
+        predicted_class: predictionData.predicted_class || 'Unknown',
+        confidence: predictionData.confidence || 0,
+        probability_Hepatitis_A: predictionData.probability_Hepatitis_A || 0,
+        probability_Hepatitis_C: predictionData.probability_Hepatitis_C || 0
+      },
+      status: 'completed'
+    })
+
+    // Save prediction to database
+    const savedPrediction = await prediction.save()
+
+    // Update user's predictions array
+    await User.findByIdAndUpdate(
+      req.user._id,
+      { $push: { predictions: savedPrediction._id } }
+    )
         
     // Log prediction
     const logEntry = {
       timestamp: new Date().toISOString(),
       userData: { age, gender, symptoms, riskFactors },
-      prediction: prediction,
+      prediction: predictionResult,
     }
         
     fs.appendFileSync(
@@ -191,7 +253,8 @@ app.post("/api/predict", async (req, res) => {
 
     res.json({
       success: true,
-      prediction: prediction,
+      prediction: predictionResult,
+      predictionId: savedPrediction._id
     })
   } catch (error) {
     console.error("Error in /api/predict:", error)
