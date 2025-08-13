@@ -58,12 +58,36 @@ class ServiceManager:
             return False
             
         # Check if model files exist
-        model_path = Path("./improved_hepatitis_outputs/models/best_improved_model.keras")
-        artifacts_path = Path("./improved_hepatitis_outputs/models/preprocessing_artifacts.pkl")
+        possible_model_paths = [
+            Path("./enhanced_hepatitis_outputs/models/best_enhanced_model.keras"),
+            Path("./hepatitis_thesis_outputs/models/best_model.keras"),
+            Path("./hepatitis_thesis_outputs/models/hepatitis_model.keras")
+        ]
         
-        if not model_path.exists() or not artifacts_path.exists():
+        possible_artifacts_paths = [
+            Path("./enhanced_hepatitis_outputs/models/preprocessing_artifacts.pkl"),
+            Path("./hepatitis_thesis_outputs/models/preprocessing_artifacts.pkl")
+        ]
+        
+        # Find existing model and artifacts
+        model_path = None
+        artifacts_path = None
+        
+        for path in possible_model_paths:
+            if path.exists():
+                model_path = path
+                break
+                
+        for path in possible_artifacts_paths:
+            if path.exists():
+                artifacts_path = path
+                break
+        
+        if not model_path or not artifacts_path:
             print("❌ Model files not found")
-            print("💡 Run improved_training.py first to generate the model")
+            print("💡 Available models:", [str(p) for p in possible_model_paths if p.exists()])
+            print("💡 Available artifacts:", [str(p) for p in possible_artifacts_paths if p.exists()])
+            print("💡 Run improved_training.py or hepatitis_thesis_training.py first to generate the model")
             return False
             
         print("✅ Model files found")

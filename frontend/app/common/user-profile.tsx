@@ -40,6 +40,7 @@ const UserProfile = ({ user, onLogout }: UserProfileProps) => {
     localStorage.removeItem("user");
     onLogout();
     setIsOpen(false);
+    router.push("/login");
   };
 
   const handleViewProfile = () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -104,6 +105,16 @@ export default function AdminDashboard() {
   const [filterRole, setFilterRole] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [refreshing, setRefreshing] = useState(false);
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    role: "user"
+  });
 
   useEffect(() => {
     fetchDashboardData();
@@ -186,6 +197,66 @@ export default function AdminDashboard() {
     fetchDashboardData();
   };
 
+  const openCreateUser = () => {
+    setCreateError(null);
+    setShowCreateUser(true);
+  };
+
+  const closeCreateUser = () => {
+    setShowCreateUser(false);
+    setNewUserForm({ firstName: "", lastName: "", email: "", password: "", role: "user" });
+    setCreating(false);
+    setCreateError(null);
+  };
+
+  const handleCreateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewUserForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCreateRoleChange = (value: string) => {
+    setNewUserForm(prev => ({ ...prev, role: value }));
+  };
+
+  const handleCreateUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/";
+        return;
+      }
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newUserForm),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.href = "/";
+          return;
+        }
+        throw new Error(data?.message || "Failed to create user");
+      }
+      // Refresh users list
+      await fetchDashboardData();
+      setActiveTab("users");
+      closeCreateUser();
+    } catch (err: any) {
+      setCreateError(err.message || "Failed to create user");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -212,6 +283,44 @@ export default function AdminDashboard() {
     const matchesRole = filterRole === "all" || user.role === filterRole;
     return matchesSearch && matchesRole;
   });
+
+  const handleEditUser = async (userId: string, updates: Partial<User>) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return window.location.href = "/";
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.message || "Failed to update user");
+      await fetchDashboardData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return window.location.href = "/";
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.message || "Failed to delete user");
+      await fetchDashboardData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const filteredPredictions = predictions.filter(prediction => {
     const matchesStatus = filterStatus === "all" || prediction.status === filterStatus;
@@ -523,7 +632,7 @@ export default function AdminDashboard() {
                         Manage system users and their permissions
                       </CardDescription>
                     </div>
-                    <Button className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2">
+                    <Button onClick={openCreateUser} className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2">
                       <Plus className="h-4 w-4" />
                       Add User
                     </Button>
@@ -595,10 +704,10 @@ export default function AdminDashboard() {
                                 <Button variant="outline" size="sm">
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" onClick={() => handleEditUser(user._id, { role: user.role === 'admin' ? 'user' as any : 'admin' as any })}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" onClick={() => handleDeleteUser(user._id)}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -725,7 +834,81 @@ export default function AdminDashboard() {
             </motion.div>
           </TabsContent>
         </Tabs>
+
+        {/* Create User Modal */}
+        {showCreateUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl">
+              <div className="mb-4">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Create User</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Add a new user account</p>
+              </div>
+              {createError && (
+                <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
+                  {createError}
+                </div>
+              )}
+              <form onSubmit={handleCreateUserSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <Input
+                    name="firstName"
+                    placeholder="First name"
+                    value={newUserForm.firstName}
+                    onChange={handleCreateInputChange}
+                    required
+                  />
+                  <Input
+                    name="lastName"
+                    placeholder="Last name"
+                    value={newUserForm.lastName}
+                    onChange={handleCreateInputChange}
+                    required
+                  />
+                </div>
+                <Input
+                  type="email"
+                  name="email"
+                  placeholder="Email"
+                  value={newUserForm.email}
+                  onChange={handleCreateInputChange}
+                  required
+                />
+                <Input
+                  type="password"
+                  name="password"
+                  placeholder="Temporary password"
+                  value={newUserForm.password}
+                  onChange={handleCreateInputChange}
+                  required
+                />
+                <div className="space-y-2">
+                  <Select value={newUserForm.role} onValueChange={handleCreateRoleChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Only admins can access this page. Creating an admin user here is allowed.</p>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={closeCreateUser}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={creating} className="bg-blue-600 hover:bg-blue-700">
+                    {creating ? "Creating..." : "Create"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+// Create User Modal
+/* Rendered inside component return above via portal-like overlay */

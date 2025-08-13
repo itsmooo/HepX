@@ -119,7 +119,6 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <Header />
       <div className="container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -500,7 +499,6 @@ const ProfilePage = () => {
           </div>
         </motion.div>
       </div>
-      <Footer />
     </div>
   );
 };

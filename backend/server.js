@@ -1,5 +1,10 @@
 import express from "express"
 import cors from "cors"
+import session from "express-session"
+import passport from "passport"
+import jwt from "jsonwebtoken"
+import { Strategy as GoogleStrategy } from "passport-google-oauth20"
+
 import { spawn, execSync } from "child_process"
 import fs from "fs"
 import path from "path"
@@ -43,6 +48,73 @@ app.use(cors())
 app.use(express.json())
 app.use(express.static(path.join(__dirname, "output")))
 
+// Session and Passport setup for OAuth
+app.set('trust proxy', 1)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'session-secret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    sameSite: 'lax',
+    secure: false
+  }
+}))
+app.use(passport.initialize())
+app.use(passport.session())
+
+passport.serializeUser((user, done) => {
+  done(null, user._id)
+})
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id).select('-password')
+    done(null, user)
+  } catch (e) {
+    done(e)
+  }
+})
+
+// OAuth strategies
+const HAS_GOOGLE = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+const BASE_URL = process.env.BACKEND_BASE_URL || `http://localhost:${PORT}`
+
+if (HAS_GOOGLE) {
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: `${BASE_URL}/api/auth/google/callback`
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      const email = profile.emails?.[0]?.value
+      let user = await User.findOne({ provider: 'google', providerId: profile.id })
+      if (!user && email) {
+        user = await User.findOne({ email })
+      }
+      if (!user) {
+        user = await User.create({
+          firstName: profile.name?.givenName || 'Google',
+          lastName: profile.name?.familyName || 'User',
+          email: email || `${profile.id}@google.local`,
+          password: Math.random().toString(36).slice(2),
+          provider: 'google',
+          providerId: profile.id,
+          avatar: profile.photos?.[0]?.value || null
+        })
+      } else {
+        user.provider = 'google'
+        user.providerId = profile.id
+        user.avatar = profile.photos?.[0]?.value || user.avatar
+        await user.save()
+      }
+      return done(null, user)
+    } catch (e) {
+      return done(e)
+    }
+  }))
+}
+
+
+
 // Set up storage for uploaded files
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -74,6 +146,19 @@ app.get("/api/auth/me", protect, getMe)
 app.put("/api/auth/profile", protect, updateProfile)
 app.put("/api/auth/change-password", protect, changePassword)
 app.post("/api/auth/logout", protect, logout)
+
+// OAuth routes (issue JWT after successful OAuth login)
+if (HAS_GOOGLE) {
+  app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
+  app.get('/api/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) => {
+    const token = jwtSignForUser(req.user)
+    res.redirect(`/oauth-success?token=${token}`)
+  })
+} else {
+  app.get('/api/auth/google', (req, res) => res.status(503).json({ success: false, message: 'Google OAuth is not configured' }))
+}
+
+
 
 // Admin Routes
 app.get("/api/admin/dashboard", protect, authorize('admin'), getDashboardStats)
@@ -202,7 +287,7 @@ app.post("/api/predict", protect, async (req, res) => {
     const predictionResult = await performImprovedPrediction(age, gender, symptoms, riskFactors)
     
     // Extract prediction data from the result
-    const predictionData = predictionResult.prediction?.predictions?.[0] || predictionResult
+    const predictionData = predictionResult.prediction || predictionResult
     
     // Create prediction record in database
     const prediction = new Prediction({
@@ -220,12 +305,12 @@ app.post("/api/predict", protect, async (req, res) => {
         loss_of_appetite: symptoms?.loss_of_appetite || false,
         joint_pain: symptoms?.joint_pain || false
       },
-      riskFactors: riskFactors || [],
+      riskFactors: mapRiskFactors(riskFactors) || [],
       prediction: {
         predicted_class: predictionData.predicted_class || 'Unknown',
         confidence: predictionData.confidence || 0,
-        probability_Hepatitis_A: predictionData.probability_Hepatitis_A || 0,
-        probability_Hepatitis_C: predictionData.probability_Hepatitis_C || 0
+        probability_Hepatitis_A: predictionData['probability_Hepatitis A'] || 0,
+        probability_Hepatitis_C: predictionData['probability_Hepatitis C'] || 0
       },
       status: 'completed'
     })
@@ -253,7 +338,7 @@ app.post("/api/predict", protect, async (req, res) => {
 
     res.json({
       success: true,
-      prediction: predictionResult,
+      prediction: predictionResult.prediction,
       predictionId: savedPrediction._id
     })
   } catch (error) {
@@ -266,62 +351,189 @@ app.post("/api/predict", protect, async (req, res) => {
   }
 })
 
-// Improved model-based prediction function using HTTP API
+// Risk factor mapping from frontend IDs to backend enum values
+function mapRiskFactors(frontendRiskFactors) {
+  const riskFactorMapping = {
+    'recentTravel': 'recent_travel',
+    'bloodTransfusion': 'blood_transfusion_history', 
+    'unsafeInjection': 'unsafe_injection_history',
+    'contactWithInfected': 'infected_contact'
+  }
+  
+  return (frontendRiskFactors || []).map(factor => 
+    riskFactorMapping[factor] || factor
+  )
+}
+
+// Enhanced rule-based prediction function (temporary fix for biased model)
 async function performImprovedPrediction(age, gender, symptoms, riskFactors) {
   try {
-    // Get Python API URL from environment or use default
-    const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://localhost:8000'
+    // Map risk factors from frontend format to backend format
+    const mappedRiskFactors = mapRiskFactors(riskFactors)
     
-    // Prepare prediction data for the Python API
-    const predictionData = {
-      age: age,
-      gender: gender,
-      symptoms: {
-        jaundice: symptoms.jaundice || false,
-        dark_urine: symptoms.dark_urine || false,
-        pain: symptoms.pain || false,
-        fatigue: symptoms.fatigue || 0,
-        nausea: symptoms.nausea || false,
-        vomiting: symptoms.vomiting || false,
-        fever: symptoms.fever || false,
-        loss_of_appetite: symptoms.loss_of_appetite || false,
-        joint_pain: symptoms.joint_pain || false
-      },
-      riskFactors: riskFactors || []
-    }
+    // Calculate symptoms and risk scores
+    const symptomScore = calculateSymptomScore(symptoms)
+    const riskScore = calculateRiskScore(age, mappedRiskFactors)
     
-    console.log('Sending prediction request to Python API:', PYTHON_API_URL)
-    console.log('Prediction data:', JSON.stringify(predictionData, null, 2))
+    // Determine prediction based on symptoms and risk factors
+    const prediction = determineHepatitisType(symptoms, symptomScore, riskScore, age, mappedRiskFactors)
     
-    // Make HTTP request to Python API
-    const response = await fetch(`${PYTHON_API_URL}/predict`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(predictionData)
-    })
+    console.log('Enhanced rule-based prediction:', prediction)
     
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(`Python API error: ${response.status} - ${errorData.detail || 'Unknown error'}`)
-    }
-    
-    const result = await response.json()
-    console.log('Prediction result from Python API:', result)
-    
-    return result
+    return { prediction }
     
   } catch (error) {
-    console.error('Error in improved prediction:', error)
-    
-    // If Python API is not available, provide a helpful error message
-    if (error.code === 'ECONNREFUSED' || error.message.includes('fetch')) {
-      throw new Error('Python prediction service is not available. Please start the Python API server using: python predict.py --server')
-    }
-    
+    console.error('Error in enhanced prediction:', error)
     throw error
   }
+}
+
+function calculateSymptomScore(symptoms) {
+  let score = 0
+  
+  // Acute symptoms (more associated with Hepatitis A)
+  if (symptoms.jaundice) score += 2
+  if (symptoms.fever) score += 2
+  if (symptoms.nausea) score += 1
+  if (symptoms.vomiting) score += 1
+  if (symptoms.darkUrine || symptoms.dark_urine) score += 1
+  if (symptoms.appetite || symptoms.loss_of_appetite) score += 1
+  
+  // Chronic symptoms (can be either, but fatigue/pain without acute symptoms lean toward C)
+  if (symptoms.fatigue > 0) score += symptoms.fatigue > 3 ? 2 : 1
+  if (symptoms.abdominalPain || symptoms.pain > 0) {
+    const painLevel = symptoms.abdominalPain || symptoms.pain
+    score += painLevel > 5 ? 2 : 1
+  }
+  if (symptoms.jointPain || symptoms.joint_pain) score += 1
+  
+  return score
+}
+
+function calculateRiskScore(age, riskFactors) {
+  let riskScore = 0
+  
+  // Age-based risk
+  if (age === 'under18' || age === '18-30') riskScore += 1 // Higher A risk
+  if (age === 'over60') riskScore += 3 // Higher C risk
+  if (age === '46-60') riskScore += 2 // Moderate C risk
+  
+  // Risk factors
+  if (riskFactors.includes('recent_travel')) riskScore -= 2 // A indicator
+  if (riskFactors.includes('blood_transfusion_history')) riskScore += 3 // C indicator
+  if (riskFactors.includes('unsafe_injection_history')) riskScore += 3 // C indicator
+  if (riskFactors.includes('infected_contact')) riskScore += 1 // Either, but slightly A
+  
+  return riskScore
+}
+
+function determineHepatitisType(symptoms, symptomScore, riskScore, age, riskFactors) {
+  // Decision logic
+  let hepatitisA_prob = 0.5 // Start with 50/50
+  let hepatitisC_prob = 0.5
+  
+  // Acute presentation strongly suggests Hepatitis A
+  const acuteSymptoms = (symptoms.jaundice ? 1 : 0) + 
+                       (symptoms.fever ? 1 : 0) + 
+                       (symptoms.nausea ? 1 : 0) + 
+                       (symptoms.vomiting ? 1 : 0)
+  
+  if (acuteSymptoms >= 3) {
+    hepatitisA_prob += 0.3
+    hepatitisC_prob -= 0.3
+  } else if (acuteSymptoms >= 2) {
+    hepatitisA_prob += 0.2
+    hepatitisC_prob -= 0.2
+  }
+  
+  // Chronic, subtle symptoms suggest Hepatitis C
+  const chronicSymptoms = (symptoms.fatigue > 2 ? 1 : 0) + 
+                          ((symptoms.abdominalPain || symptoms.pain) > 2 ? 1 : 0) + 
+                          (symptoms.jointPain || symptoms.joint_pain ? 1 : 0)
+  
+  if (chronicSymptoms >= 2 && acuteSymptoms <= 1) {
+    hepatitisC_prob += 0.25
+    hepatitisA_prob -= 0.25
+  }
+  
+  // Risk factors adjustment
+  if (riskFactors.includes('recent_travel')) {
+    hepatitisA_prob += 0.2
+    hepatitisC_prob -= 0.2
+  }
+  
+  if (riskFactors.includes('blood_transfusion_history') || 
+      riskFactors.includes('unsafe_injection_history')) {
+    hepatitisC_prob += 0.3
+    hepatitisA_prob -= 0.3
+  }
+  
+  // Age adjustment
+  if (age === 'under18' || age === '18-30') {
+    hepatitisA_prob += 0.1
+    hepatitisC_prob -= 0.1
+  } else if (age === 'over60') {
+    hepatitisC_prob += 0.2
+    hepatitisA_prob -= 0.2
+  }
+  
+  // Ensure probabilities are between 0 and 1
+  hepatitisA_prob = Math.max(0.05, Math.min(0.95, hepatitisA_prob))
+  hepatitisC_prob = 1 - hepatitisA_prob
+  
+  // Determine predicted class
+  const predicted_class = hepatitisA_prob > hepatitisC_prob ? 'Hepatitis A' : 'Hepatitis C'
+  const confidence = Math.max(hepatitisA_prob, hepatitisC_prob)
+  
+  // Create symptoms text
+  const symptomsAnalyzed = createSymptomsText(symptoms)
+  const severityAssessed = determineSeverity(symptomScore)
+  
+  return {
+    predicted_class,
+    confidence,
+    'probability_Hepatitis A': hepatitisA_prob,
+    'probability_Hepatitis C': hepatitisC_prob,
+    symptoms_analyzed: symptomsAnalyzed,
+    severity_assessed: severityAssessed,
+    symptom_count: countSymptoms(symptoms)
+  }
+}
+
+function createSymptomsText(symptoms) {
+  const symptomList = []
+  
+  if (symptoms.jaundice) symptomList.push('jaundice')
+  if (symptoms.darkUrine || symptoms.dark_urine) symptomList.push('dark-colored urine')
+  if (symptoms.abdominalPain || symptoms.pain > 0) symptomList.push('abdominal pain')
+  if (symptoms.fatigue > 0) symptomList.push('fatigue')
+  if (symptoms.nausea) symptomList.push('nausea')
+  if (symptoms.vomiting) symptomList.push('vomiting')
+  if (symptoms.fever) symptomList.push('fever')
+  if (symptoms.appetite || symptoms.loss_of_appetite) symptomList.push('loss of appetite')
+  if (symptoms.jointPain || symptoms.joint_pain) symptomList.push('joint pain')
+  
+  return symptomList.length > 0 ? symptomList.join(', ') : 'no symptoms'
+}
+
+function determineSeverity(symptomScore) {
+  if (symptomScore >= 8) return 'Severe'
+  if (symptomScore >= 4) return 'Moderate'
+  return 'Mild'
+}
+
+function countSymptoms(symptoms) {
+  return [
+    symptoms.jaundice,
+    symptoms.darkUrine || symptoms.dark_urine,
+    (symptoms.abdominalPain || symptoms.pain) > 0,
+    symptoms.fatigue > 0,
+    symptoms.nausea,
+    symptoms.vomiting,
+    symptoms.fever,
+    symptoms.appetite || symptoms.loss_of_appetite,
+    symptoms.jointPain || symptoms.joint_pain
+  ].filter(Boolean).length
 }
 
 // Error handling middleware
@@ -345,3 +557,7 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
+
+function jwtSignForUser(user) {
+  return jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '30d' })
+}

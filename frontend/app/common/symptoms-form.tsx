@@ -163,17 +163,29 @@ const SymptomsForm = () => {
       setLoading(true);
       setProgress(0);
 
-      // Create form data to send to the API
-      const formData = new FormData();
-      formData.append("age", formState.age);
-      formData.append("gender", formState.gender);
-      formData.append("symptoms", JSON.stringify(formState.symptoms));
-      formData.append("riskFactors", JSON.stringify(formState.riskFactors));
-
-      // Call the API
+      const token = localStorage.getItem("token");
       const response = await fetch("/api/predict", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          age: formState.age,
+          gender: formState.gender,
+          symptoms: {
+            jaundice: formState.symptoms.jaundice,
+            dark_urine: formState.symptoms.darkUrine,
+            pain: formState.symptoms.abdominalPain as number,
+            fatigue: formState.symptoms.fatigue as number,
+            nausea: formState.symptoms.nausea,
+            vomiting: false,
+            fever: formState.symptoms.fever as number,
+            loss_of_appetite: formState.symptoms.appetite,
+            joint_pain: formState.symptoms.jointPain,
+          },
+          riskFactors: formState.riskFactors,
+        }),
       });
 
       if (!response.ok) {

@@ -17,7 +17,7 @@ const generateToken = (id) => {
 // @access  Public
 export const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password } = req.body
+    const { firstName, lastName, email, password, role } = req.body
 
     // Check if user exists
     const userExists = await User.findOne({ email })
@@ -28,12 +28,39 @@ export const register = async (req, res) => {
       })
     }
 
+    // Determine role with safeguards
+    let effectiveRole = 'user'
+    const requestedRole = (role || '').toLowerCase()
+
+    if (requestedRole === 'admin') {
+      const allowFlag = process.env.ALLOW_ADMIN_REGISTRATION === 'true'
+      const existingUsersCount = await User.countDocuments()
+
+      // Allow admin creation if explicitly enabled via env flag, or if this is the first user
+      if (allowFlag || existingUsersCount === 0) {
+        effectiveRole = 'admin'
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: 'Admin registration is disabled. Set ALLOW_ADMIN_REGISTRATION=true or create the first user as admin.'
+        })
+      }
+    } else if (requestedRole === 'user' || !requestedRole) {
+      effectiveRole = 'user'
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role. Allowed roles: user, admin'
+      })
+    }
+
     // Create user
     const user = await User.create({
       firstName,
       lastName,
       email,
-      password
+      password,
+      role: effectiveRole
     })
 
     if (user) {

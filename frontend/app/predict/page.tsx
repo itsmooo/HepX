@@ -58,15 +58,13 @@ type UserData = {
 type PredictionResult = {
   success: boolean;
   prediction: {
-    success: boolean;
-    message: string;
-    predictions: Array<{
-      predicted_class: string;
-      "probability_Hepatitis A": number;
-      "probability_Hepatitis C": number;
-      confidence?: number;
-    }>;
-    total_predictions: number;
+    predicted_class: string;
+    confidence: number;
+    "probability_Hepatitis A": number;
+    "probability_Hepatitis C": number;
+    symptoms_analyzed: string;
+    severity_assessed: string;
+    symptom_count: number;
   };
 };
 
@@ -154,11 +152,13 @@ export default function PredictionSelector() {
       setLoading(true);
       setProgress(0);
 
-      // Call the Next.js API route which forwards to Python FastAPI server
-      const response = await fetch('/api/predict', {
+      // Call backend API via Next.js rewrite (Express will save prediction)
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/predict", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           age: userData.age,
@@ -166,8 +166,8 @@ export default function PredictionSelector() {
           symptoms: {
             jaundice: userData.symptoms.jaundice,
             dark_urine: userData.symptoms.darkUrine,
-            pain: userData.symptoms.abdominalPain,  // Keep as numeric value
-            fatigue: userData.symptoms.fatigue,     // Keep as numeric value
+            pain: userData.symptoms.abdominalPain, // Keep as numeric value
+            fatigue: userData.symptoms.fatigue, // Keep as numeric value
             nausea: userData.symptoms.nausea,
             vomiting: false, // Add if needed
             fever: userData.symptoms.fever,
@@ -264,18 +264,15 @@ ${
 
 Prediction Results:
 ${
-  predictionResult?.prediction.predictions
-    .map(
-      (pred) =>
-        `${pred.predicted_class}:
-- Probability of Hepatitis A: ${(pred["probability_Hepatitis A"] * 100).toFixed(
-          1
-        )}%
-- Probability of Hepatitis C: ${(pred["probability_Hepatitis C"] * 100).toFixed(
-          1
-        )}%`
-    )
-    .join("\n\n") || "No prediction results available."
+  predictionResult?.prediction
+    ? `${predictionResult.prediction.predicted_class}:
+- Probability of Hepatitis A: ${(predictionResult.prediction["probability_Hepatitis A"] * 100).toFixed(1)}%
+- Probability of Hepatitis C: ${(predictionResult.prediction["probability_Hepatitis C"] * 100).toFixed(1)}%
+- Confidence: ${(predictionResult.prediction.confidence * 100).toFixed(1)}%
+- Symptoms Analyzed: ${predictionResult.prediction.symptoms_analyzed}
+- Severity Assessment: ${predictionResult.prediction.severity_assessed}
+- Symptom Count: ${predictionResult.prediction.symptom_count}`
+    : "No prediction results available."
 }
 
 Important Note:
@@ -358,7 +355,6 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950">
-      <Header />
       <main className="flex-grow container mx-auto px-4 py-12">
         <motion.div
           className="max-w-4xl mx-auto"
@@ -383,7 +379,7 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                   </CardDescription>
                 </div>
               </div>
-              
+
               {!showResults && (
                 <div className="mt-4">
                   <div className="flex justify-between text-sm text-blue-100 mb-2 font-medium">
@@ -458,7 +454,9 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                 <SelectValue placeholder="Select your age group" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="under18">Under 18</SelectItem>
+                                <SelectItem value="under18">
+                                  Under 18
+                                </SelectItem>
                                 <SelectItem value="18-30">18-30</SelectItem>
                                 <SelectItem value="31-45">31-45</SelectItem>
                                 <SelectItem value="46-60">46-60</SelectItem>
@@ -491,13 +489,19 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                     : "border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600"
                                 }`}
                               >
-                                <RadioGroupItem value="male" id="male" className="sr-only" />
+                                <RadioGroupItem
+                                  value="male"
+                                  id="male"
+                                  className="sr-only"
+                                />
                                 <div className="flex items-center space-x-3">
-                                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                                    userData.gender === "male"
-                                      ? "border-blue-500 bg-blue-500"
-                                      : "border-slate-300 dark:border-slate-600"
-                                  }`}>
+                                  <div
+                                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                      userData.gender === "male"
+                                        ? "border-blue-500 bg-blue-500"
+                                        : "border-slate-300 dark:border-slate-600"
+                                    }`}
+                                  >
                                     {userData.gender === "male" && (
                                       <div className="w-2 h-2 bg-white rounded-full" />
                                     )}
@@ -524,13 +528,19 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                     : "border-slate-200 dark:border-slate-700 hover:border-pink-300 dark:hover:border-pink-600"
                                 }`}
                               >
-                                <RadioGroupItem value="female" id="female" className="sr-only" />
+                                <RadioGroupItem
+                                  value="female"
+                                  id="female"
+                                  className="sr-only"
+                                />
                                 <div className="flex items-center space-x-3">
-                                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                                    userData.gender === "female"
-                                      ? "border-pink-500 bg-pink-500"
-                                      : "border-slate-300 dark:border-slate-600"
-                                  }`}>
+                                  <div
+                                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                      userData.gender === "female"
+                                        ? "border-pink-500 bg-pink-500"
+                                        : "border-slate-300 dark:border-slate-600"
+                                    }`}
+                                  >
                                     {userData.gender === "female" && (
                                       <div className="w-2 h-2 bg-white rounded-full" />
                                     )}
@@ -580,28 +590,28 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                   label: "Yellowing of skin/eyes (Jaundice)",
                                   icon: "🟡",
                                 },
-                                { 
-                                  id: "darkUrine", 
+                                {
+                                  id: "darkUrine",
                                   label: "Dark Urine",
                                   icon: "🟤",
                                 },
-                                { 
-                                  id: "fever", 
+                                {
+                                  id: "fever",
                                   label: "Fever",
                                   icon: "🌡️",
                                 },
-                                { 
-                                  id: "jointPain", 
+                                {
+                                  id: "jointPain",
                                   label: "Joint Pain",
                                   icon: "🦴",
                                 },
-                                { 
-                                  id: "nausea", 
+                                {
+                                  id: "nausea",
                                   label: "Nausea",
                                   icon: "🤢",
                                 },
-                                { 
-                                  id: "appetite", 
+                                {
+                                  id: "appetite",
                                   label: "Loss of Appetite",
                                   icon: "🍽️",
                                 },
@@ -609,28 +619,47 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                 <div
                                   key={symptom.id}
                                   className={`relative p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
-                                    userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean
+                                    (userData.symptoms[
+                                      symptom.id as keyof typeof userData.symptoms
+                                    ] as boolean)
                                       ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
                                       : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
                                   }`}
-                                  onClick={() => handleSymptomChange(
-                                    symptom.id,
-                                    !(userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean)
-                                  )}
+                                  onClick={() =>
+                                    handleSymptomChange(
+                                      symptom.id,
+                                      !(userData.symptoms[
+                                        symptom.id as keyof typeof userData.symptoms
+                                      ] as boolean)
+                                    )
+                                  }
                                 >
                                   <Checkbox
                                     id={symptom.id}
-                                    checked={userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean}
-                                    onCheckedChange={(checked: boolean) => handleSymptomChange(symptom.id, checked === true)}
+                                    checked={
+                                      userData.symptoms[
+                                        symptom.id as keyof typeof userData.symptoms
+                                      ] as boolean
+                                    }
+                                    onCheckedChange={(checked: boolean) =>
+                                      handleSymptomChange(
+                                        symptom.id,
+                                        checked === true
+                                      )
+                                    }
                                     className="sr-only"
                                   />
                                   <div className="flex items-center space-x-3">
-                                    <div className="text-xl">{symptom.icon}</div>
+                                    <div className="text-xl">
+                                      {symptom.icon}
+                                    </div>
                                     <div className="flex-1">
                                       <Label
                                         htmlFor={symptom.id}
                                         className={`cursor-pointer font-medium ${
-                                          userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean
+                                          (userData.symptoms[
+                                            symptom.id as keyof typeof userData.symptoms
+                                          ] as boolean)
                                             ? "text-blue-700 dark:text-blue-300"
                                             : "text-slate-900 dark:text-white"
                                         }`}
@@ -638,7 +667,9 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                         {symptom.label}
                                       </Label>
                                     </div>
-                                    {userData.symptoms[symptom.id as keyof typeof userData.symptoms] as boolean && (
+                                    {(userData.symptoms[
+                                      symptom.id as keyof typeof userData.symptoms
+                                    ] as boolean) && (
                                       <CheckCircle2 className="w-5 h-5 text-blue-500" />
                                     )}
                                   </div>
@@ -749,25 +780,29 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                               {
                                 id: "recentTravel",
                                 label: "Recent Travel to High-Risk Areas",
-                                description: "Travel to regions with known hepatitis outbreaks in the past 6 months",
+                                description:
+                                  "Travel to regions with known hepatitis outbreaks in the past 6 months",
                                 icon: "✈️",
                               },
                               {
                                 id: "bloodTransfusion",
                                 label: "History of Blood Transfusion",
-                                description: "Received blood products before comprehensive screening was implemented",
+                                description:
+                                  "Received blood products before comprehensive screening was implemented",
                                 icon: "🩸",
                               },
                               {
                                 id: "unsafeInjection",
                                 label: "History of Unsafe Injection Practices",
-                                description: "Shared needles or received injections with potentially unsterilized equipment",
+                                description:
+                                  "Shared needles or received injections with potentially unsterilized equipment",
                                 icon: "💉",
                               },
                               {
                                 id: "contactWithInfected",
                                 label: "Contact with Infected Person",
-                                description: "Close contact with someone diagnosed with hepatitis",
+                                description:
+                                  "Close contact with someone diagnosed with hepatitis",
                                 icon: "👥",
                               },
                             ].map((factor) => (
@@ -778,16 +813,24 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                     ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
                                     : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
                                 }`}
-                                onClick={() => handleRiskFactorToggle(factor.id)}
+                                onClick={() =>
+                                  handleRiskFactorToggle(factor.id)
+                                }
                               >
                                 <Checkbox
                                   id={factor.id}
-                                  checked={userData.riskFactors.includes(factor.id)}
-                                  onCheckedChange={() => handleRiskFactorToggle(factor.id)}
+                                  checked={userData.riskFactors.includes(
+                                    factor.id
+                                  )}
+                                  onCheckedChange={() =>
+                                    handleRiskFactorToggle(factor.id)
+                                  }
                                   className="sr-only"
                                 />
                                 <div className="flex items-start space-x-4">
-                                  <div className="text-2xl flex-shrink-0">{factor.icon}</div>
+                                  <div className="text-2xl flex-shrink-0">
+                                    {factor.icon}
+                                  </div>
                                   <div className="flex-1">
                                     <Label
                                       htmlFor={factor.id}
@@ -799,11 +842,13 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                     >
                                       {factor.label}
                                     </Label>
-                                    <p className={`text-sm mt-1 leading-relaxed ${
-                                      userData.riskFactors.includes(factor.id)
-                                        ? "text-blue-600 dark:text-blue-400"
-                                        : "text-slate-500 dark:text-slate-400"
-                                    }`}>
+                                    <p
+                                      className={`text-sm mt-1 leading-relaxed ${
+                                        userData.riskFactors.includes(factor.id)
+                                          ? "text-blue-600 dark:text-blue-400"
+                                          : "text-slate-500 dark:text-slate-400"
+                                      }`}
+                                    >
                                       {factor.description}
                                     </p>
                                   </div>
@@ -868,7 +913,11 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                       <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 20,
+                        }}
                         className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-green-100 dark:bg-green-900/20"
                       >
                         <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
@@ -881,87 +930,113 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                       </p>
                     </div>
 
-                    {predictionResult?.prediction.predictions.map((pred, index) => (
-                      <motion.div
-                        key={index}
-                        className="mb-8"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 + index * 0.1 }}
-                      >
-                        <div className="text-center mb-6">
-                          <Badge className="text-lg px-6 py-2 bg-blue-600 text-white">
-                            {pred.predicted_class}
-                          </Badge>
-                          {/* Add confidence display */}
-                          <div className="mt-3">
-                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Confidence: {Math.round((pred.confidence || Math.max(pred["probability_Hepatitis A"], pred["probability_Hepatitis C"])) * 100)}%
-                              </span>
+                    {predictionResult?.prediction && (
+                        <motion.div
+                          className="mb-8"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 }}
+                        >
+                          <div className="text-center mb-6">
+                            <Badge className="text-lg px-6 py-2 bg-blue-600 text-white">
+                              {predictionResult.prediction.predicted_class}
+                            </Badge>
+                            {/* Add confidence display */}
+                            <div className="mt-3">
+                              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                  Confidence:{" "}
+                                  {Math.round(predictionResult.prediction.confidence * 100)}%
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="grid gap-6 md:grid-cols-2">
-                          <Card className="border-blue-200 dark:border-blue-700">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-lg flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                                Hepatitis A
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-center">
-                                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                                  {(pred["probability_Hepatitis A"] * 100).toFixed(1)}%
+                          <div className="grid gap-6 md:grid-cols-2">
+                            <Card className="border-blue-200 dark:border-blue-700">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                                  Hepatitis A
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="text-center">
+                                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                                    {(
+                                      predictionResult.prediction["probability_Hepatitis A"] * 100
+                                    ).toFixed(1)}
+                                    %
+                                  </div>
+                                  <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <motion.div
+                                      className="h-full bg-blue-500"
+                                      style={{
+                                        width: `${
+                                          predictionResult.prediction["probability_Hepatitis A"] * 100
+                                        }%`,
+                                      }}
+                                      initial={{ width: 0 }}
+                                      animate={{
+                                        width: `${
+                                          predictionResult.prediction["probability_Hepatitis A"] * 100
+                                        }%`,
+                                      }}
+                                      transition={{ duration: 1, delay: 0.5 }}
+                                    />
+                                  </div>
                                 </div>
-                                <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                  <motion.div
-                                    className="h-full bg-blue-500"
-                                    style={{ width: `${pred["probability_Hepatitis A"] * 100}%` }}
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${pred["probability_Hepatitis A"] * 100}%` }}
-                                    transition={{ duration: 1, delay: 0.5 }}
-                                  />
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
+                              </CardContent>
+                            </Card>
 
-                          <Card className="border-purple-200 dark:border-purple-700">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-lg flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                                Hepatitis C
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-center">
-                                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                                  {(pred["probability_Hepatitis C"] * 100).toFixed(1)}%
+                            <Card className="border-purple-200 dark:border-purple-700">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                  <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                                  Hepatitis C
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="text-center">
+                                  <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+                                    {(
+                                      predictionResult.prediction["probability_Hepatitis C"] * 100
+                                    ).toFixed(1)}
+                                    %
+                                  </div>
+                                  <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <motion.div
+                                      className="h-full bg-purple-500"
+                                      style={{
+                                        width: `${
+                                          predictionResult.prediction["probability_Hepatitis C"] * 100
+                                        }%`,
+                                      }}
+                                      initial={{ width: 0 }}
+                                      animate={{
+                                        width: `${
+                                          predictionResult.prediction["probability_Hepatitis C"] * 100
+                                        }%`,
+                                      }}
+                                      transition={{ duration: 1, delay: 0.7 }}
+                                    />
+                                  </div>
                                 </div>
-                                <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                  <motion.div
-                                    className="h-full bg-purple-500"
-                                    style={{ width: `${pred["probability_Hepatitis C"] * 100}%` }}
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${pred["probability_Hepatitis C"] * 100}%` }}
-                                    transition={{ duration: 1, delay: 0.7 }}
-                                  />
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </motion.div>
-                    ))}
+                              </CardContent>
+                            </Card>
+                          </div>
+                        </motion.div>
+                    )}
 
                     <Alert className="mb-8 border-amber-200 bg-amber-50 dark:bg-amber-900/20">
                       <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                       <AlertDescription>
-                        <strong>Medical Disclaimer:</strong> This AI-powered analysis is for informational purposes only and should not replace professional medical advice. The results are based on the symptoms and risk factors you provided and are meant to guide your next steps.
+                        <strong>Medical Disclaimer:</strong> This AI-powered
+                        analysis is for informational purposes only and should
+                        not replace professional medical advice. The results are
+                        based on the symptoms and risk factors you provided and
+                        are meant to guide your next steps.
                       </AlertDescription>
                     </Alert>
 
@@ -978,23 +1053,27 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                             {
                               icon: "🏥",
                               title: "Consult Healthcare Provider",
-                              description: "Schedule an appointment with your doctor or hepatologist for professional evaluation",
+                              description:
+                                "Schedule an appointment with your doctor or hepatologist for professional evaluation",
                             },
                             {
                               icon: "📋",
                               title: "Share Assessment Results",
-                              description: "Bring these results and your symptoms history to your medical consultation",
+                              description:
+                                "Bring these results and your symptoms history to your medical consultation",
                             },
                             {
                               icon: "🧪",
                               title: "Medical Testing",
-                              description: "Get proper blood tests and liver function tests for accurate diagnosis",
+                              description:
+                                "Get proper blood tests and liver function tests for accurate diagnosis",
                             },
                             {
                               icon: "📱",
                               title: "Monitor Symptoms",
-                              description: "Keep track of any changes in symptoms and overall health condition",
-                            }
+                              description:
+                                "Keep track of any changes in symptoms and overall health condition",
+                            },
                           ].map((step, i) => (
                             <motion.div
                               key={i}
@@ -1045,16 +1124,11 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                           Processing...
                         </>
                       ) : (
-                        <>
-                          Submit Assessment
-                        </>
+                        <>Submit Assessment</>
                       )}
                     </Button>
                   ) : (
-                    <Button
-                      onClick={nextTab}
-                      className="px-6 py-2"
-                    >
+                    <Button onClick={nextTab} className="px-6 py-2">
                       Next <ChevronRight className="h-4 w-4 ml-2" />
                     </Button>
                   )}
@@ -1069,10 +1143,7 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                   >
                     Start Over
                   </Button>
-                  <Button
-                    onClick={downloadResults}
-                    className="px-4 py-2"
-                  >
+                  <Button onClick={downloadResults} className="px-4 py-2">
                     <Download className="h-4 w-4 mr-2" /> Download Results
                   </Button>
                 </>
@@ -1081,7 +1152,6 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
           </Card>
         </motion.div>
       </main>
-      <Footer />
     </div>
   );
 }
