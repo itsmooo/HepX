@@ -378,12 +378,12 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                 </div>
                 <div>
                   <CardTitle className="text-2xl font-bold text-white mb-1">
-                    HepaPredict
+                    HepaPredict: A vs C
                   </CardTitle>
                   <CardDescription className="text-blue-100">
                     {!showResults
-                      ? "Complete the assessment to get your results"
-                      : "Your prediction results"}
+                      ? "AI-powered Hepatitis A vs Hepatitis C prediction"
+                      : "Your Hepatitis A vs C prediction results"}
                   </CardDescription>
                 </div>
               </div>
@@ -584,9 +584,14 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                               <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
                                 <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                               </div>
-                              <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
-                                Select Your Symptoms
-                              </h3>
+                              <div>
+                                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+                                  Select Your Symptoms
+                                </h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                  AI will analyze your symptoms to predict Hepatitis A or C
+                                </p>
+                              </div>
                             </div>
                           </motion.div>
 
@@ -869,7 +874,21 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                           </motion.div>
 
                           <motion.div
-                            className="p-4 mt-6 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700"
+                            className="p-4 mt-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 mb-4"
+                            variants={itemVariants}
+                          >
+                            <h4 className="font-semibold mb-2 text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4" />
+                              About Hepatitis A vs C:
+                            </h4>
+                            <div className="text-blue-700 dark:text-blue-300 text-sm space-y-2">
+                              <p><strong>Hepatitis A:</strong> Acute infection, usually resolves on its own, spread through contaminated food/water</p>
+                              <p><strong>Hepatitis C:</strong> Can become chronic, may cause liver damage, spread through blood contact</p>
+                            </div>
+                          </motion.div>
+
+                          <motion.div
+                            className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700"
                             variants={itemVariants}
                           >
                             <h4 className="font-semibold mb-2 text-amber-800 dark:text-amber-200 flex items-center gap-2">
@@ -877,7 +896,7 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                               Important Note:
                             </h4>
                             <p className="text-amber-700 dark:text-amber-300 text-sm">
-                              This assessment is not a medical diagnosis. It's
+                              This AI prediction is not a medical diagnosis. It's
                               based on the information you provided and is
                               intended to guide your next steps. For accurate
                               diagnosis, please consult with a healthcare
@@ -931,10 +950,10 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                         <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
                       </motion.div>
                       <h3 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">
-                        Analysis Complete
+                        Hepatitis A vs C Analysis Complete
                       </h3>
                       <p className="text-slate-600 dark:text-slate-300">
-                        Your hepatitis risk assessment results
+                        AI prediction based on your symptoms and risk factors
                       </p>
                     </div>
 
@@ -946,11 +965,16 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                           transition={{ delay: 0.2 }}
                         >
                           <div className="text-center mb-6">
+                            <div className="mb-2">
+                              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                                Prediction Result:
+                              </span>
+                            </div>
                             <Badge className="text-lg px-6 py-2 bg-blue-600 text-white">
                               {predictionResult.prediction.predicted_class}
                             </Badge>
                             {/* Add confidence display */}
-                            <div className="mt-3">
+                            <div className="mt-3 space-y-2">
                               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -958,77 +982,82 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                                   {Math.round(predictionResult.prediction.confidence * 100)}%
                                 </span>
                               </div>
+                              {predictionResult.prediction.model_used && (
+                                <div className="block">
+                                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-800 border border-blue-200 dark:border-blue-700">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                      {predictionResult.prediction.model_used}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          <div className="grid gap-6 md:grid-cols-2">
-                            <Card className="border-blue-200 dark:border-blue-700">
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                                  Hepatitis A
+                          <div className="flex justify-center">
+                            <Card className={`w-full max-w-md ${
+                              predictionResult.prediction.predicted_class === "Hepatitis A" 
+                                ? "border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20" 
+                                : "border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20"
+                            }`}>
+                              <CardHeader className="pb-3 text-center">
+                                <CardTitle className="text-2xl flex items-center justify-center gap-3">
+                                  <div className={`w-4 h-4 rounded-full ${
+                                    predictionResult.prediction.predicted_class === "Hepatitis A" 
+                                      ? "bg-blue-500" 
+                                      : "bg-purple-500"
+                                  }`}></div>
+                                  {predictionResult.prediction.predicted_class}
                                 </CardTitle>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                                  Predicted diagnosis based on your symptoms
+                                </p>
                               </CardHeader>
                               <CardContent>
                                 <div className="text-center">
-                                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                                  <div className={`text-5xl font-bold mb-4 ${
+                                    predictionResult.prediction.predicted_class === "Hepatitis A" 
+                                      ? "text-blue-600 dark:text-blue-400" 
+                                      : "text-purple-600 dark:text-purple-400"
+                                  }`}>
                                     {(
-                                      predictionResult.prediction["probability_Hepatitis A"] * 100
-                                    ).toFixed(1)}
-                                    %
+                                      predictionResult.prediction.predicted_class === "Hepatitis A"
+                                        ? predictionResult.prediction["probability_Hepatitis A"] * 100
+                                        : predictionResult.prediction["probability_Hepatitis C"] * 100
+                                    ).toFixed(1)}%
                                   </div>
-                                  <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                  <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mb-4">
                                     <motion.div
-                                      className="h-full bg-blue-500"
+                                      className={`h-full ${
+                                        predictionResult.prediction.predicted_class === "Hepatitis A" 
+                                          ? "bg-blue-500" 
+                                          : "bg-purple-500"
+                                      }`}
                                       style={{
                                         width: `${
-                                          predictionResult.prediction["probability_Hepatitis A"] * 100
+                                          predictionResult.prediction.predicted_class === "Hepatitis A"
+                                            ? predictionResult.prediction["probability_Hepatitis A"] * 100
+                                            : predictionResult.prediction["probability_Hepatitis C"] * 100
                                         }%`,
                                       }}
                                       initial={{ width: 0 }}
                                       animate={{
                                         width: `${
-                                          predictionResult.prediction["probability_Hepatitis A"] * 100
+                                          predictionResult.prediction.predicted_class === "Hepatitis A"
+                                            ? predictionResult.prediction["probability_Hepatitis A"] * 100
+                                            : predictionResult.prediction["probability_Hepatitis C"] * 100
                                         }%`,
                                       }}
-                                      transition={{ duration: 1, delay: 0.5 }}
+                                      transition={{ duration: 1.5, delay: 0.5 }}
                                     />
                                   </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-
-                            <Card className="border-purple-200 dark:border-purple-700">
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                  <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                                  Hepatitis C
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="text-center">
-                                  <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                                    {(
-                                      predictionResult.prediction["probability_Hepatitis C"] * 100
-                                    ).toFixed(1)}
-                                    %
-                                  </div>
-                                  <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                    <motion.div
-                                      className="h-full bg-purple-500"
-                                      style={{
-                                        width: `${
-                                          predictionResult.prediction["probability_Hepatitis C"] * 100
-                                        }%`,
-                                      }}
-                                      initial={{ width: 0 }}
-                                      animate={{
-                                        width: `${
-                                          predictionResult.prediction["probability_Hepatitis C"] * 100
-                                        }%`,
-                                      }}
-                                      transition={{ duration: 1, delay: 0.7 }}
-                                    />
+                                  <div className={`text-sm font-medium ${
+                                    predictionResult.prediction.predicted_class === "Hepatitis A" 
+                                      ? "text-blue-700 dark:text-blue-300" 
+                                      : "text-purple-700 dark:text-purple-300"
+                                  }`}>
+                                    Probability Score
                                   </div>
                                 </div>
                               </CardContent>
@@ -1040,11 +1069,11 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                     <Alert className="mb-8 border-amber-200 bg-amber-50 dark:bg-amber-900/20">
                       <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                       <AlertDescription>
-                        <strong>Medical Disclaimer:</strong> This AI-powered
-                        analysis is for informational purposes only and should
+                        <strong>Medical Disclaimer:</strong> This AI prediction between Hepatitis A and C
+                        is for informational purposes only and should
                         not replace professional medical advice. The results are
-                        based on the symptoms and risk factors you provided and
-                        are meant to guide your next steps.
+                        based on machine learning analysis of your symptoms and risk factors.
+                        Please consult a healthcare professional for proper diagnosis and treatment.
                       </AlertDescription>
                     </Alert>
 
