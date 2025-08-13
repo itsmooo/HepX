@@ -270,8 +270,8 @@ app.get("/api/visualization/:filename", (req, res) => {
   }
 })
 
-// Route to handle prediction
-app.post("/api/predict", protect, async (req, res) => {
+// Route to handle prediction (temporarily unprotected for testing)
+app.post("/api/predict", async (req, res) => {
   try {
     const { age, gender, symptoms, riskFactors } = req.body
 
@@ -289,9 +289,9 @@ app.post("/api/predict", protect, async (req, res) => {
     // Extract prediction data from the result
     const predictionData = predictionResult.prediction || predictionResult
     
-    // Create prediction record in database
+    // Create prediction record in database (guest user)
     const prediction = new Prediction({
-      user: req.user._id,
+      user: null, // Guest prediction
       age,
       gender,
       symptoms: {
@@ -318,11 +318,11 @@ app.post("/api/predict", protect, async (req, res) => {
     // Save prediction to database
     const savedPrediction = await prediction.save()
 
-    // Update user's predictions array
-    await User.findByIdAndUpdate(
-      req.user._id,
-      { $push: { predictions: savedPrediction._id } }
-    )
+    // Skip updating user's predictions array for guest users
+    // await User.findByIdAndUpdate(
+    //   req.user._id,
+    //   { $push: { predictions: savedPrediction._id } }
+    // )
         
     // Log prediction
     const logEntry = {

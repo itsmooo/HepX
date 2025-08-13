@@ -4,7 +4,8 @@ const predictionSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false,  // Allow guest predictions
+    default: null
   },
   age: {
     type: String,

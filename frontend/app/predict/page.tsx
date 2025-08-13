@@ -65,6 +65,8 @@ type PredictionResult = {
     symptoms_analyzed: string;
     severity_assessed: string;
     symptom_count: number;
+    model_used?: string;
+    active_features?: Record<string, number>;
   };
 };
 
@@ -185,6 +187,12 @@ export default function PredictionSelector() {
 
       const data = await response.json();
       console.log("Prediction data received:", data);
+      
+      // Validate response structure
+      if (!data.success || !data.prediction) {
+        throw new Error(data.message || "Invalid response structure from server");
+      }
+      
       setPredictionResult(data);
       setShowResults(true);
 
@@ -930,7 +938,7 @@ This is based on your selection and is not a medical diagnosis. For accurate dia
                       </p>
                     </div>
 
-                    {predictionResult?.prediction && (
+                    {predictionResult?.success && predictionResult?.prediction && (
                         <motion.div
                           className="mb-8"
                           initial={{ opacity: 0, y: 20 }}
