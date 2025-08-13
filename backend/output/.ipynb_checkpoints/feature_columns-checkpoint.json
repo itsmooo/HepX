@@ -1,1 +1,0 @@
-{"features": ["SymptomCount", "Severity", "SymptomLength", "has_jaundice", "has_fatigue", "has_nausea", "has_vomiting", "has_fever", "has_pain", "DiagnosisYear", "DiagnosisMonth"]}
