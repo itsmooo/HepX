@@ -270,7 +270,7 @@ app.get("/api/visualization/:filename", (req, res) => {
   }
 })
 
-// Route to handle prediction (temporarily unprotected for testing)
+// Route to handle prediction (supports both authenticated and guest users)
 app.post("/api/predict", async (req, res) => {
   try {
     const { age, gender, symptoms, riskFactors } = req.body
@@ -283,15 +283,28 @@ app.post("/api/predict", async (req, res) => {
       })
     }
 
+    // Try to get authenticated user (if token is provided)
+    let authenticatedUser = null;
+    try {
+      if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        const token = req.headers.authorization.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        authenticatedUser = await User.findById(decoded.id).select('-password');
+      }
+    } catch (error) {
+      // Token invalid or expired, proceed as guest
+      console.log('No valid token provided, proceeding as guest user');
+    }
+
     // Use improved model prediction
     const predictionResult = await performImprovedPrediction(age, gender, symptoms, riskFactors)
     
     // Extract prediction data from the result
     const predictionData = predictionResult.prediction || predictionResult
     
-    // Create prediction record in database (guest user)
+    // Create prediction record in database (with user if authenticated, null if guest)
     const prediction = new Prediction({
-      user: null, // Guest prediction
+      user: authenticatedUser ? authenticatedUser._id : null,
       age,
       gender,
       symptoms: {
@@ -318,11 +331,13 @@ app.post("/api/predict", async (req, res) => {
     // Save prediction to database
     const savedPrediction = await prediction.save()
 
-    // Skip updating user's predictions array for guest users
-    // await User.findByIdAndUpdate(
-    //   req.user._id,
-    //   { $push: { predictions: savedPrediction._id } }
-    // )
+    // Update user's predictions array if authenticated
+    if (authenticatedUser) {
+      await User.findByIdAndUpdate(
+        authenticatedUser._id,
+        { $push: { predictions: savedPrediction._id } }
+      )
+    }
         
     // Log prediction
     const logEntry = {
