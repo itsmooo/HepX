@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
   Activity,
-  Bell,
   Users,
   ChevronDown,
   Menu,
@@ -69,7 +68,7 @@ const Header = () => {
     { href: "/symptoms", label: "Symptoms" },
     { href: "/predict", label: "Predict" },
     { href: "/#education", label: "Education" },
-    { href: "/about", label: "Our Team" },
+    { href: "/about", label: "About" },
     { href: "/faq", label: "FAQ" },
     ...(user ? [{ href: "/profile", label: "Profile" }] : []),
     ...(user?.role === "admin" ? [{ href: "/admin", label: "Admin Dashboard" }] : []),
@@ -148,34 +147,36 @@ const Header = () => {
         )}
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center relative z-10">
-          <motion.div
-            className="flex items-center space-x-3"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          >
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                <Activity className="h-6 w-6 text-white" />
+          <Link href="/">
+            <motion.div
+              className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity duration-300"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              <div className="relative">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                  <Activity className="h-6 w-6 text-white" />
+                </div>
+                <motion.div
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Sparkles className="h-2 w-2 text-white" />
+                </motion.div>
               </div>
-              <motion.div
-                className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center"
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Sparkles className="h-2 w-2 text-white" />
-              </motion.div>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  Hepa
-                </span>
-                <span className="text-slate-700 dark:text-slate-300">Predict</span>
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">AI Health Prediction</p>
-            </div>
-          </motion.div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Hepa
+                  </span>
+                  <span className="text-slate-700 dark:text-slate-300">Predict</span>
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">AI Health Prediction</p>
+              </div>
+            </motion.div>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
@@ -219,14 +220,6 @@ const Header = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 hover:scale-105"
-              >
-                <Bell className="h-4 w-4" />
-              </Button>
-              
               {user ? (
                 <UserProfile user={user} onLogout={handleLogout} />
               ) : (
@@ -258,13 +251,6 @@ const Header = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
             >
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 hover:scale-105"
-              >
-                <Bell className="h-4 w-4" />
-              </Button>
               <Drawer open={open} onOpenChange={setOpen}>
                 <DrawerTrigger asChild>
                   <Button

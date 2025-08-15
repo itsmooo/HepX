@@ -8,7 +8,6 @@ import {
   Phone,
   MapPin,
   Github,
-  Twitter,
   Facebook,
 } from "lucide-react";
 import Link from "next/link";
@@ -188,12 +187,6 @@ const Footer = () => {
                 className="text-slate-400 hover:text-blue-400 transition-colors"
               >
                 <Github className="h-5 w-5" />
-              </Link>
-              <Link
-                href="#"
-                className="text-slate-400 hover:text-blue-400 transition-colors"
-              >
-                <Twitter className="h-5 w-5" />
               </Link>
               <Link
                 href="#"

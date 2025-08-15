@@ -1,9 +1,7 @@
 import express from "express"
 import cors from "cors"
-import session from "express-session"
-import passport from "passport"
+
 import jwt from "jsonwebtoken"
-import { Strategy as GoogleStrategy } from "passport-google-oauth20"
 
 import { spawn, execSync } from "child_process"
 import fs from "fs"
@@ -48,73 +46,6 @@ app.use(cors())
 app.use(express.json())
 app.use(express.static(path.join(__dirname, "output")))
 
-// Session and Passport setup for OAuth
-app.set('trust proxy', 1)
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'session-secret',
-  resave: false,
-  saveUninitialized: true,
-  cookie: {
-    sameSite: 'lax',
-    secure: false
-  }
-}))
-app.use(passport.initialize())
-app.use(passport.session())
-
-passport.serializeUser((user, done) => {
-  done(null, user._id)
-})
-passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await User.findById(id).select('-password')
-    done(null, user)
-  } catch (e) {
-    done(e)
-  }
-})
-
-// OAuth strategies
-const HAS_GOOGLE = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
-const BASE_URL = process.env.BACKEND_BASE_URL || `http://localhost:${PORT}`
-
-if (HAS_GOOGLE) {
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${BASE_URL}/api/auth/google/callback`
-  }, async (accessToken, refreshToken, profile, done) => {
-    try {
-      const email = profile.emails?.[0]?.value
-      let user = await User.findOne({ provider: 'google', providerId: profile.id })
-      if (!user && email) {
-        user = await User.findOne({ email })
-      }
-      if (!user) {
-        user = await User.create({
-          firstName: profile.name?.givenName || 'Google',
-          lastName: profile.name?.familyName || 'User',
-          email: email || `${profile.id}@google.local`,
-          password: Math.random().toString(36).slice(2),
-          provider: 'google',
-          providerId: profile.id,
-          avatar: profile.photos?.[0]?.value || null
-        })
-      } else {
-        user.provider = 'google'
-        user.providerId = profile.id
-        user.avatar = profile.photos?.[0]?.value || user.avatar
-        await user.save()
-      }
-      return done(null, user)
-    } catch (e) {
-      return done(e)
-    }
-  }))
-}
-
-
-
 // Set up storage for uploaded files
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -147,16 +78,7 @@ app.put("/api/auth/profile", protect, updateProfile)
 app.put("/api/auth/change-password", protect, changePassword)
 app.post("/api/auth/logout", protect, logout)
 
-// OAuth routes (issue JWT after successful OAuth login)
-if (HAS_GOOGLE) {
-  app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
-  app.get('/api/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) => {
-    const token = jwtSignForUser(req.user)
-    res.redirect(`/oauth-success?token=${token}`)
-  })
-} else {
-  app.get('/api/auth/google', (req, res) => res.status(503).json({ success: false, message: 'Google OAuth is not configured' }))
-}
+
 
 
 

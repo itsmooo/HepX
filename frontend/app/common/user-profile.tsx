@@ -7,13 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { 
   User, 
-  Settings, 
   LogOut, 
   ChevronDown, 
   Activity,
-  Shield,
   Heart,
-  Calendar,
   TrendingUp
 } from "lucide-react";
 
@@ -144,27 +141,7 @@ const UserProfile = ({ user, onLogout }: UserProfileProps) => {
                       <User className="h-4 w-4 mr-3" />
                       View Profile
                     </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
-                    >
-                      <Settings className="h-4 w-4 mr-3" />
-                      Settings
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
-                    >
-                      <Calendar className="h-4 w-4 mr-3" />
-                      History
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
-                    >
-                      <Shield className="h-4 w-4 mr-3" />
-                      Privacy
-                    </Button>
+
                   </div>
 
                   {/* Logout Button */}

@@ -37,6 +37,7 @@ import Footer from "../common/footer";
 import { motion, AnimatePresence } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import LoginForm from "../common/login-form";
 
 type UserData = {
   age: string;
@@ -78,6 +79,8 @@ export default function PredictionSelector() {
   const [showResults, setShowResults] = useState(false);
   const [predictionResult, setPredictionResult] =
     useState<PredictionResult | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [userData, setUserData] = useState<UserData>({
     age: "",
     gender: "",
@@ -93,6 +96,41 @@ export default function PredictionSelector() {
     },
     riskFactors: [],
   });
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem("token");
+      const user = localStorage.getItem("user");
+      
+      if (token && user) {
+        try {
+          JSON.parse(user); // Validate user data
+          setIsAuthenticated(true);
+        } catch (error) {
+          // Invalid user data, clear storage
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          setIsAuthenticated(false);
+          setShowLoginPrompt(true);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setShowLoginPrompt(true);
+      }
+    };
+
+    checkAuth();
+    
+    // Listen for storage changes (login from other tabs)
+    window.addEventListener("storage", checkAuth);
+    window.addEventListener("focus", checkAuth);
+
+    return () => {
+      window.removeEventListener("storage", checkAuth);
+      window.removeEventListener("focus", checkAuth);
+    };
+  }, []);
 
   // Simulate progress bar
   useEffect(() => {
@@ -236,6 +274,79 @@ export default function PredictionSelector() {
     setShowResults(false);
     setActiveTab("basic");
   };
+
+  const handleCloseAuthForms = () => {
+    setShowLoginPrompt(false);
+  };
+
+  // Show loading state while checking authentication
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-slate-600 dark:text-slate-400">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication prompt if not logged in
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-2xl mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertCircle className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+                Authentication Required
+              </h1>
+              <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">
+                You need to be logged in to access the hepatitis prediction features. 
+                Please sign in to your account or create a new one to continue.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button
+                  onClick={() => setShowLoginPrompt(true)}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowLoginPrompt(true)}
+                  className="border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-8 py-3 rounded-xl transition-all duration-300"
+                >
+                  Create Account
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+        <Footer />
+        
+        {/* Auth Forms */}
+        <AnimatePresence>
+          {showLoginPrompt && (
+            <LoginForm
+              onSwitchToRegister={() => {}}
+              onClose={handleCloseAuthForms}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   const downloadResults = () => {
     const resultText = `

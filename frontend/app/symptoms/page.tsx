@@ -325,7 +325,7 @@ For accurate diagnosis, please consult with a healthcare professional.
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950">
-      <Header />
+    
       <main className="flex-grow">
         <section
           id="predict"
@@ -805,7 +805,6 @@ For accurate diagnosis, please consult with a healthcare professional.
           </motion.div>
         </section>
       </main>
-      <Footer />
     </div>
   );
 };

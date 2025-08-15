@@ -1,6 +1,5 @@
 "use client";
-import Header from "../common/header";
-import Footer from "../common/footer";
+
 import { HelpCircle, Sparkles, Shield, Activity, Brain } from "lucide-react";
 import {
   Accordion,
@@ -19,17 +18,17 @@ const FaqPage = () => {
         {
           question: "Maxay tahay Cagaarshowga?",
           answer:
-            "Cagaarshowgu waa xanuun beerka ku dhaca kaasoo keena bararka beerka. Waxa keena fayruusyo kala duwan, khamriga xad-dhaafka ah, daawooyin, ama waxyaabo kale oo sun ah. Noocyada ugu caansan waa cagaarshowga fayruuska ah (A, B, C, D, iyo E), kuwaas oo midkasta leeyahay sababihiisa gaarka ah.",
+            "Cagaarshowgu waa xanuun beerka ku dhaca kaasoo keena bararka beerka. Waxa keena fayruusyo kala duwan, khamriga xad-dhaafka ah, daawooyin, ama waxyaabo kale oo sun ah. Noocyada ugu muhiimsan ee aan ku saabsannahay waa cagaarshowga fayruuska ah A iyo C, kuwaas oo midkasta leeyahay sababihiisa gaarka ah.",
         },
         {
           question: "Sidee ayey u kala duwan yihiin noocyada Cagaarshowga?",
           answer:
-            "Cagaarshowga A: Ku faafa cuntada ama biyaha wasakhaysan, waa mid ku meel gaar ah. Cagaarshowga B: Ku faafa dhiigga iyo dheecaannada kale, wuxuu noqon karaa mid ku meel gaar ah ama joogto ah. Cagaarshowga C: Inta badan ku faafa dhiigga, badanaa waa mid joogto ah, wuxuuna keeni karaa dhaawac beerka ah haddii aan la daaweyn.",
+            "Cagaarshowga A: Ku faafa cuntada ama biyaha wasakhaysan, waa mid ku meel gaar ah oo badanaa is-bogsiiya. Cagaarshowga C: Inta badan ku faafa dhiigga, badanaa waa mid joogto ah, wuxuuna keeni karaa dhaawac beerka ah haddii aan la daaweyn. Labadan nooc ayaa ah kuwa ugu muhiimsan ee aan baaritaanka ku sameynno.",
         },
         {
           question: "Ma la daaweyn karaa Cagaarshowga?",
           answer:
-            "Haa, laakiin daawadu way ku xiran tahay nooca. Cagaarshowga A wuu is-daaweeyaa. Cagaarshowga B waa la xakameyn karaa daawooyin, inkastoo aan la bogsiin karin. Cagaarshowga C hadda si buuxda ayaa loo daaweyn karaa inta badan kiisaska, waxaana la isticmaalaa daawooyin casri ah oo la qaato 8-12 toddobaad.",
+            "Haa, laakiin daawadu way ku xiran tahay nooca. Cagaarshowga A wuu is-daaweeyaa oo ma u baahna daaweyn gaar ah. Cagaarshowga C hadda si buuxda ayaa loo daaweyn karaa inta badan kiisaska, waxaana la isticmaalaa daawooyin casri ah oo la qaato 8-12 toddobaad.",
         },
       ],
     },
@@ -123,9 +122,7 @@ const FaqPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-white via-blue-50/5 to-white dark:from-slate-950 dark:via-blue-900/5 dark:to-slate-950">
-      <Header />
-      <main className="flex-grow">
+    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/5 to-white dark:from-slate-950 dark:via-blue-900/5 dark:to-slate-950">
         <section className="py-20 px-6 relative overflow-hidden">
           {/* Background Elements */}
           <div className="absolute inset-0 overflow-hidden">
@@ -201,8 +198,6 @@ const FaqPage = () => {
             ))}
           </motion.div>
         </section>
-      </main>
-      <Footer />
     </div>
   );
 };

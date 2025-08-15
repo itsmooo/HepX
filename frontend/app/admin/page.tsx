@@ -37,7 +37,6 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
-  Download,
   RefreshCw,
   Settings,
   Shield,
@@ -825,10 +824,7 @@ export default function AdminDashboard() {
               )}
               Refresh
             </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Export Data
-            </Button>
+
           </div>
         </motion.div>
 
@@ -1188,10 +1184,7 @@ export default function AdminDashboard() {
                         Monitor and manage all system predictions
                       </CardDescription>
                     </div>
-                    <Button className="bg-green-600 hover:bg-green-700 flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      Export
-                    </Button>
+
                   </div>
                 </CardHeader>
                 <CardContent>
